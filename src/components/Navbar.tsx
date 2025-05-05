@@ -9,11 +9,11 @@ import {
   Users
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navbar = () => {
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {

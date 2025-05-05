@@ -11,7 +11,7 @@ export interface Appointment {
 }
 
 // Datos de ejemplo
-const sampleAppointments: Appointment[] = [
+let sampleAppointments: Appointment[] = [
   {
     id: "1",
     clientName: "Carlos Rodríguez",
@@ -140,4 +140,68 @@ export const getAppointmentStats = () => {
     workshopServices,
     serviceTypes
   };
+};
+
+// Generar un ID único
+const generateId = (): string => {
+  return Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+};
+
+// Agregar un nuevo turno
+export interface NewAppointmentData {
+  clientName: string;
+  date: Date;
+  time: string;
+  serviceType: string;
+  location: string;
+  isHomeService: boolean;
+}
+
+export const addAppointment = (appointmentData: NewAppointmentData): Appointment => {
+  const formattedDate = formatDate(appointmentData.date);
+  
+  const newAppointment: Appointment = {
+    id: generateId(),
+    clientName: appointmentData.clientName,
+    date: formattedDate,
+    time: appointmentData.time,
+    serviceType: appointmentData.serviceType,
+    location: appointmentData.isHomeService ? appointmentData.location : "Taller principal",
+    isHomeService: appointmentData.isHomeService,
+    status: "pending"
+  };
+  
+  sampleAppointments = [...sampleAppointments, newAppointment];
+  return newAppointment;
+};
+
+// Actualizar el estado de un turno
+export const updateAppointmentStatus = (id: string, status: "pending" | "completed" | "cancelled"): Appointment | undefined => {
+  const appointmentIndex = sampleAppointments.findIndex(app => app.id === id);
+  
+  if (appointmentIndex !== -1) {
+    const updatedAppointment = {
+      ...sampleAppointments[appointmentIndex],
+      status
+    };
+    
+    sampleAppointments = [
+      ...sampleAppointments.slice(0, appointmentIndex),
+      updatedAppointment,
+      ...sampleAppointments.slice(appointmentIndex + 1)
+    ];
+    
+    return updatedAppointment;
+  }
+  
+  return undefined;
+};
+
+// Función auxiliar para formatear la fecha
+const formatDate = (date: Date): string => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
 };

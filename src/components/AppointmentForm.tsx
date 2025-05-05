@@ -12,10 +12,12 @@ import { CarIcon, Calendar as CalendarIcon, Clock, Droplets } from "lucide-react
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { addAppointment, NewAppointmentData } from "@/services/appointmentService";
 
 interface AppointmentFormProps {
   open: boolean;
   onClose: () => void;
+  onAppointmentAdded?: () => void;
 }
 
 const services = [
@@ -34,7 +36,7 @@ const times = [
   "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
 ];
 
-const AppointmentForm = ({ open, onClose }: AppointmentFormProps) => {
+const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormProps) => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [serviceLocation, setServiceLocation] = useState("workshop");
   const [formData, setFormData] = useState({
@@ -88,14 +90,43 @@ const AppointmentForm = ({ open, onClose }: AppointmentFormProps) => {
     return !Object.values(newErrors).some(error => error);
   };
 
+  const resetForm = () => {
+    setFormData({
+      clientName: "",
+      serviceType: "",
+      time: "",
+      location: ""
+    });
+    setServiceLocation("workshop");
+    setDate(new Date());
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      // Aquí iría la lógica para guardar el turno
+    if (validateForm() && date) {
+      const appointmentData: NewAppointmentData = {
+        clientName: formData.clientName,
+        date: date,
+        time: formData.time,
+        serviceType: formData.serviceType,
+        location: formData.location,
+        isHomeService: serviceLocation === "home"
+      };
+      
+      // Agregar el nuevo turno
+      const newAppointment = addAppointment(appointmentData);
+      
       toast.success("Turno agendado correctamente", {
-        description: `${formData.clientName} - ${format(date || new Date(), "dd/MM/yyyy")} ${formData.time}`
+        description: `${formData.clientName} - ${format(date, "dd/MM/yyyy")} ${formData.time}`
       });
+      
+      // Notificar que se ha agregado un turno (para actualizar vistas)
+      if (onAppointmentAdded) {
+        onAppointmentAdded();
+      }
+      
+      resetForm();
       onClose();
     }
   };

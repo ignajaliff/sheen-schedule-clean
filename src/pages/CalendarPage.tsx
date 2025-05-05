@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, startOfWeek, endOfWeek, startOfDay, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { PlusIcon } from "lucide-react";
@@ -7,16 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
 import AppointmentForm from "@/components/AppointmentForm";
-import { getAppointments, Appointment } from "@/services/appointmentService";
+import { getAppointments, Appointment, updateAppointmentStatus } from "@/services/appointmentService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const CalendarPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [activeView, setActiveView] = useState("week");
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   
-  const appointments = getAppointments();
+  useEffect(() => {
+    // Cargar los turnos cada vez que refreshKey cambie
+    setAppointments(getAppointments());
+  }, [refreshKey]);
   
   const getDaysOfWeek = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -58,6 +64,26 @@ const CalendarPage = () => {
     setSelectedAppointment(appointment);
   };
   
+  const handleAppointmentAdded = () => {
+    // Actualizar la lista de turnos
+    setRefreshKey(prevKey => prevKey + 1);
+  };
+
+  const handleStatusUpdate = (id: string, status: "completed" | "cancelled") => {
+    const updatedAppointment = updateAppointmentStatus(id, status);
+    
+    if (updatedAppointment) {
+      setRefreshKey(prevKey => prevKey + 1);
+      setSelectedAppointment(null);
+      
+      if (status === "completed") {
+        toast.success("Turno completado correctamente");
+      } else {
+        toast.info("Turno cancelado");
+      }
+    }
+  };
+  
   // Renderizar la vista de semana
   const renderWeekView = () => {
     const days = getDaysOfWeek();
@@ -91,7 +117,7 @@ const CalendarPage = () => {
   
   // Renderizar la vista de día
   const renderDayView = () => {
-    const appointments = getAppointmentsForDay(selectedDate);
+    const appointmentsForDay = getAppointmentsForDay(selectedDate);
     const hours = Array.from({ length: 10 }, (_, i) => i + 9); // 9:00 - 18:00
     
     return (
@@ -105,7 +131,7 @@ const CalendarPage = () => {
             <div className="flex">
               <div className="w-16 text-right pr-4 text-gray-500">{`${hour}:00`}</div>
               <div className="flex-grow">
-                {appointments
+                {appointmentsForDay
                   .filter(app => {
                     const [appHour] = app.time.split(':');
                     return parseInt(appHour) === hour;
@@ -223,10 +249,17 @@ const CalendarPage = () => {
               <DialogFooter className="gap-2 sm:gap-0">
                 {selectedAppointment.status === "pending" && (
                   <>
-                    <Button variant="outline" className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200">
+                    <Button 
+                      variant="outline" 
+                      className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                      onClick={() => handleStatusUpdate(selectedAppointment.id, "cancelled")}
+                    >
                       Cancelar Turno
                     </Button>
-                    <Button className="bg-green-600 hover:bg-green-700">
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleStatusUpdate(selectedAppointment.id, "completed")}
+                    >
                       Marcar Completado
                     </Button>
                   </>
@@ -245,6 +278,7 @@ const CalendarPage = () => {
         <AppointmentForm 
           open={isFormOpen} 
           onClose={() => setIsFormOpen(false)}
+          onAppointmentAdded={handleAppointmentAdded}
         />
       </main>
     </div>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlusIcon, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,16 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import AppointmentCard from "@/components/AppointmentCard";
 import Header from "@/components/Header";
 import AppointmentForm from "@/components/AppointmentForm";
-import { getAppointments, Appointment } from "@/services/appointmentService";
+import { getAppointments, Appointment, updateAppointmentStatus } from "@/services/appointmentService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const AppointmentsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   
-  const appointments = getAppointments();
+  useEffect(() => {
+    // Cargar los turnos cada vez que refreshKey cambie
+    setAppointments(getAppointments());
+  }, [refreshKey]);
   
   const filteredAppointments = appointments.filter(app => {
     const matchesSearch = app.clientName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -26,6 +32,26 @@ const AppointmentsPage = () => {
 
   const openAppointmentDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
+  };
+
+  const handleAppointmentAdded = () => {
+    // Actualizar la lista de turnos
+    setRefreshKey(prevKey => prevKey + 1);
+  };
+
+  const handleStatusUpdate = (id: string, status: "completed" | "cancelled") => {
+    const updatedAppointment = updateAppointmentStatus(id, status);
+    
+    if (updatedAppointment) {
+      setRefreshKey(prevKey => prevKey + 1);
+      setSelectedAppointment(null);
+      
+      if (status === "completed") {
+        toast.success("Turno completado correctamente");
+      } else {
+        toast.info("Turno cancelado");
+      }
+    }
   };
 
   return (
@@ -149,10 +175,17 @@ const AppointmentsPage = () => {
               <DialogFooter className="gap-2 sm:gap-0">
                 {selectedAppointment.status === "pending" && (
                   <>
-                    <Button variant="outline" className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200">
+                    <Button 
+                      variant="outline" 
+                      className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                      onClick={() => handleStatusUpdate(selectedAppointment.id, "cancelled")}
+                    >
                       Cancelar Turno
                     </Button>
-                    <Button className="bg-green-600 hover:bg-green-700">
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleStatusUpdate(selectedAppointment.id, "completed")}
+                    >
                       Marcar Completado
                     </Button>
                   </>
@@ -171,6 +204,7 @@ const AppointmentsPage = () => {
         <AppointmentForm 
           open={isFormOpen} 
           onClose={() => setIsFormOpen(false)}
+          onAppointmentAdded={handleAppointmentAdded}
         />
       </main>
     </div>

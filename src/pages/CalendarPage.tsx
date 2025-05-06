@@ -120,6 +120,17 @@ const CalendarPage = () => {
     const appointmentsForDay = getAppointmentsForDay(selectedDate);
     const hours = Array.from({ length: 10 }, (_, i) => i + 9); // 9:00 - 18:00
     
+    // Agrupar citas por hora
+    const appointmentsByHour: Record<string, Appointment[]> = {};
+    
+    appointmentsForDay.forEach(appointment => {
+      const hour = appointment.time.split(':')[0];
+      if (!appointmentsByHour[hour]) {
+        appointmentsByHour[hour] = [];
+      }
+      appointmentsByHour[hour].push(appointment);
+    });
+    
     return (
       <div className="flex flex-col h-[calc(100vh-170px)] overflow-y-auto">
         <div className="text-center py-4 border-b sticky top-0 bg-white">
@@ -131,21 +142,21 @@ const CalendarPage = () => {
             <div className="flex">
               <div className="w-16 text-right pr-4 text-gray-500">{`${hour}:00`}</div>
               <div className="flex-grow">
-                {appointmentsForDay
-                  .filter(app => {
-                    const [appHour] = app.time.split(':');
-                    return parseInt(appHour) === hour;
-                  })
-                  .map(appointment => (
-                    <div 
-                      key={appointment.id}
-                      className={`mb-2 p-2 rounded border-l-4 cursor-pointer ${getAppointmentColor(appointment.status)}`}
-                      onClick={() => openAppointmentDetails(appointment)}
-                    >
-                      <p className="font-medium">{appointment.clientName}</p>
-                      <p className="text-sm text-gray-600">{appointment.time} - {appointment.serviceType}</p>
-                    </div>
-                  ))}
+                {appointmentsByHour[hour.toString()] && appointmentsByHour[hour.toString()].map((appointment, index) => (
+                  <div 
+                    key={appointment.id}
+                    className={`mb-2 p-2 rounded border-l-4 cursor-pointer ${getAppointmentColor(appointment.status)} ${index > 0 ? 'mt-1' : ''}`}
+                    onClick={() => openAppointmentDetails(appointment)}
+                  >
+                    <p className="font-medium">{appointment.clientName}</p>
+                    <p className="text-sm text-gray-600">{appointment.time} - {appointment.serviceType}</p>
+                    {index === 0 && appointmentsByHour[hour.toString()].length > 1 && (
+                      <div className="bg-blue-100 text-blue-700 rounded px-1 py-0.5 text-xs inline-block mt-1">
+                        Horario compartido
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

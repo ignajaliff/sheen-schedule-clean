@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CarIcon, Calendar as CalendarIcon, Clock, Droplets } from "lucide-react";
+import { CarIcon, Calendar as CalendarIcon, Clock, Droplets, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { addAppointment, NewAppointmentData } from "@/services/appointmentService";
+import { addAppointment, NewAppointmentData, checkTimeAvailability } from "@/services/appointmentService";
 
 interface AppointmentFormProps {
   open: boolean;
@@ -52,6 +52,8 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
     time: false,
     location: false
   });
+  
+  const [availabilityInfo, setAvailabilityInfo] = useState<{count: number, available: boolean} | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -76,6 +78,30 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
       ...errors,
       [name]: false
     });
+    
+    // Si cambia la hora, verificar disponibilidad
+    if (name === "time" && date) {
+      checkAvailability(date, value);
+    }
+  };
+  
+  // Verifica la disponibilidad cuando cambia la fecha o la hora
+  const checkAvailability = (selectedDate: Date, selectedTime: string) => {
+    if (!selectedTime) return;
+    
+    const appointmentsCount = checkTimeAvailability(selectedDate, selectedTime);
+    setAvailabilityInfo({
+      count: appointmentsCount,
+      available: appointmentsCount < 2
+    });
+  };
+  
+  // Actualizar cuando cambia la fecha
+  const handleDateChange = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    if (selectedDate && formData.time) {
+      checkAvailability(selectedDate, formData.time);
+    }
   };
 
   const validateForm = () => {
@@ -99,6 +125,7 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
     });
     setServiceLocation("workshop");
     setDate(new Date());
+    setAvailabilityInfo(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -115,7 +142,12 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
       };
       
       // Agregar el nuevo turno
-      const newAppointment = addAppointment(appointmentData);
+      const result = addAppointment(appointmentData);
+      
+      if ('error' in result) {
+        toast.error(result.error);
+        return;
+      }
       
       toast.success("Turno agendado correctamente", {
         description: `${formData.clientName} - ${format(date, "dd/MM/yyyy")} ${formData.time}`
@@ -175,7 +207,7 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateChange}
                   initialFocus
                   className="p-3"
                 />
@@ -205,6 +237,21 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
             </Select>
             {errors.time && (
               <p className="text-red-500 text-xs">Seleccione un horario</p>
+            )}
+            
+            {/* Mostrar información de disponibilidad */}
+            {availabilityInfo && (
+              <div className={cn(
+                "text-xs p-2 rounded-md flex items-center mt-1",
+                availabilityInfo.available 
+                  ? availabilityInfo.count === 0 ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700" 
+                  : "bg-red-50 text-red-700"
+              )}>
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {availabilityInfo.count === 0 && "Horario completamente disponible"}
+                {availabilityInfo.count === 1 && "Queda 1 turno disponible para este horario"}
+                {availabilityInfo.count >= 2 && "No hay turnos disponibles para este horario"}
+              </div>
             )}
           </div>
           
@@ -271,7 +318,11 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
             <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button type="submit" className="w-full sm:w-auto bg-cleanly-blue hover:bg-blue-700">
+            <Button 
+              type="submit" 
+              className="w-full sm:w-auto bg-cleanly-blue hover:bg-blue-700"
+              disabled={availabilityInfo && !availabilityInfo.available}
+            >
               Agendar Turno
             </Button>
           </DialogFooter>

@@ -147,6 +147,20 @@ const generateId = (): string => {
   return Date.now().toString() + Math.floor(Math.random() * 1000).toString();
 };
 
+// Verificar disponibilidad del horario
+export const checkTimeAvailability = (date: Date, time: string): number => {
+  const formattedDate = formatDate(date);
+  
+  // Contar cuántos turnos hay para la misma fecha y hora
+  const appointmentsAtSameTime = sampleAppointments.filter(app => 
+    app.date === formattedDate && 
+    app.time === time &&
+    app.status !== "cancelled" // No contamos los cancelados
+  );
+  
+  return appointmentsAtSameTime.length;
+};
+
 // Agregar un nuevo turno
 export interface NewAppointmentData {
   clientName: string;
@@ -157,8 +171,15 @@ export interface NewAppointmentData {
   isHomeService: boolean;
 }
 
-export const addAppointment = (appointmentData: NewAppointmentData): Appointment => {
+export const addAppointment = (appointmentData: NewAppointmentData): Appointment | { error: string } => {
   const formattedDate = formatDate(appointmentData.date);
+  
+  // Verificar si hay disponibilidad (máximo 2 turnos por horario)
+  const currentAppointments = checkTimeAvailability(appointmentData.date, appointmentData.time);
+  
+  if (currentAppointments >= 2) {
+    return { error: "Horario no disponible. Ya hay 2 turnos agendados para este horario." };
+  }
   
   const newAppointment: Appointment = {
     id: generateId(),

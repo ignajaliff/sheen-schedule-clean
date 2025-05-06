@@ -9,7 +9,133 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string
+          date: string
+          id: string
+          is_home_service: boolean
+          location: string
+          service_type: string
+          status: string
+          time: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          date: string
+          id?: string
+          is_home_service?: boolean
+          location: string
+          service_type: string
+          status: string
+          time: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          date?: string
+          id?: string
+          is_home_service?: boolean
+          location?: string
+          service_type?: string
+          status?: string
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_service_date: string | null
+          loyalty_points: number
+          name: string
+          notes: string | null
+          phone: string
+          preferred_contact_method: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          last_service_date?: string | null
+          loyalty_points?: number
+          name: string
+          notes?: string | null
+          phone: string
+          preferred_contact_method: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_service_date?: string | null
+          loyalty_points?: number
+          name?: string
+          notes?: string | null
+          phone?: string
+          preferred_contact_method?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          client_id: string
+          color: string
+          created_at: string
+          id: string
+          license_plate: string
+          make: string
+          model: string
+          type: string
+          year: string
+        }
+        Insert: {
+          client_id: string
+          color: string
+          created_at?: string
+          id?: string
+          license_plate: string
+          make: string
+          model: string
+          type: string
+          year: string
+        }
+        Update: {
+          client_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          license_plate?: string
+          make?: string
+          model?: string
+          type?: string
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

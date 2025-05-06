@@ -1,4 +1,8 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
 export interface Client {
   id: string;
   name: string;
@@ -21,221 +25,356 @@ export interface Vehicle {
   color: string;
 }
 
-// Datos de ejemplo
-let sampleClients: Client[] = [
-  {
-    id: "1",
-    name: "Carlos Rodríguez",
-    email: "carlos.rodriguez@example.com",
-    phone: "+54 11 1234-5678",
-    preferredContactMethod: "whatsapp",
-    vehicles: [
-      {
-        id: "v1",
-        make: "Toyota",
-        model: "Corolla",
-        year: "2020",
-        licensePlate: "AB 123 CD",
-        type: "medium",
-        color: "Gris Plata"
-      }
-    ],
-    notes: "Prefiere servicios los sábados por la mañana",
-    loyaltyPoints: 120,
-    lastServiceDate: "05/04/2025"
-  },
-  {
-    id: "2",
-    name: "María González",
-    email: "maria.gonzalez@example.com",
-    phone: "+54 11 8765-4321",
-    preferredContactMethod: "email",
-    vehicles: [
-      {
-        id: "v2",
-        make: "Honda",
-        model: "Civic",
-        year: "2019",
-        licensePlate: "XY 789 ZW",
-        type: "medium",
-        color: "Azul Marino"
-      },
-      {
-        id: "v3",
-        make: "Jeep",
-        model: "Renegade",
-        year: "2021",
-        licensePlate: "CD 456 EF",
-        type: "suv",
-        color: "Rojo"
-      }
-    ],
-    notes: "Alérgica a ciertos productos. Usar solo productos hipoalergénicos.",
-    loyaltyPoints: 85,
-    lastServiceDate: "28/04/2025"
-  },
-  {
-    id: "3",
-    name: "Juan Pérez",
-    email: "juan.perez@example.com",
-    phone: "+54 11 5555-1234",
-    preferredContactMethod: "phone",
-    vehicles: [
-      {
-        id: "v4",
-        make: "Volkswagen",
-        model: "Golf",
-        year: "2018",
-        licensePlate: "GH 222 IJ",
-        type: "small",
-        color: "Blanco"
-      }
-    ],
-    notes: "Cliente frecuente. Siempre pide encerado extra.",
-    loyaltyPoints: 200,
-    lastServiceDate: "01/05/2025"
-  },
-  {
-    id: "4",
-    name: "Ana Martínez",
-    email: "ana.martinez@example.com",
-    phone: "+54 11 3333-7777",
-    preferredContactMethod: "whatsapp",
-    vehicles: [
-      {
-        id: "v5",
-        make: "Ford",
-        model: "Ranger",
-        year: "2022",
-        licensePlate: "KL 888 MN",
-        type: "truck",
-        color: "Negro"
-      }
-    ],
-    notes: "",
-    loyaltyPoints: 65,
-    lastServiceDate: "20/04/2025"
-  },
-  {
-    id: "5",
-    name: "Roberto Fernández",
-    email: "roberto.fernandez@example.com",
-    phone: "+54 11 9876-2222",
-    preferredContactMethod: "email",
-    vehicles: [
-      {
-        id: "v6",
-        make: "Chevrolet",
-        model: "Cruze",
-        year: "2020",
-        licensePlate: "OP 555 QR",
-        type: "medium",
-        color: "Gris Oscuro"
-      }
-    ],
-    notes: "Pide siempre protector de tablero extra",
-    loyaltyPoints: 110,
-    lastServiceDate: "10/04/2025"
-  }
-];
-
 // Obtener todos los clientes
-export const getClients = (): Client[] => {
-  return sampleClients;
+export const getClients = async (): Promise<Client[]> => {
+  try {
+    const { data: clientsData, error: clientsError } = await supabase
+      .from('clients')
+      .select(`
+        id,
+        name,
+        email,
+        phone,
+        preferred_contact_method,
+        notes,
+        loyalty_points,
+        last_service_date,
+        created_at
+      `);
+
+    if (clientsError) {
+      toast.error("Error al obtener clientes: " + clientsError.message);
+      return [];
+    }
+
+    // Obtener vehículos para cada cliente
+    const clientsWithVehicles = await Promise.all(
+      clientsData.map(async (client) => {
+        const { data: vehiclesData, error: vehiclesError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('client_id', client.id);
+
+        if (vehiclesError) {
+          toast.error("Error al obtener vehículos: " + vehiclesError.message);
+          return {
+            ...mapClientFromSupabase(client),
+            vehicles: [],
+          };
+        }
+
+        return {
+          ...mapClientFromSupabase(client),
+          vehicles: vehiclesData.map(mapVehicleFromSupabase),
+        };
+      })
+    );
+
+    return clientsWithVehicles;
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return [];
+  }
 };
 
 // Obtener un cliente por ID
-export const getClientById = (id: string): Client | undefined => {
-  return sampleClients.find(client => client.id === id);
+export const getClientById = async (id: string): Promise<Client | undefined> => {
+  try {
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select(`
+        id,
+        name,
+        email,
+        phone,
+        preferred_contact_method,
+        notes,
+        loyalty_points,
+        last_service_date,
+        created_at
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (clientError || !client) {
+      if (clientError) {
+        toast.error("Error al obtener cliente: " + clientError.message);
+      }
+      return undefined;
+    }
+
+    // Obtener vehículos del cliente
+    const { data: vehicles, error: vehiclesError } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('client_id', id);
+
+    if (vehiclesError) {
+      toast.error("Error al obtener vehículos: " + vehiclesError.message);
+      return {
+        ...mapClientFromSupabase(client),
+        vehicles: [],
+      };
+    }
+
+    return {
+      ...mapClientFromSupabase(client),
+      vehicles: vehicles.map(mapVehicleFromSupabase),
+    };
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
+  }
 };
 
 // Buscar clientes por nombre
-export const searchClientsByName = (query: string): Client[] => {
-  if (!query) return sampleClients;
-  const lowercaseQuery = query.toLowerCase();
-  return sampleClients.filter(client => 
-    client.name.toLowerCase().includes(lowercaseQuery)
-  );
+export const searchClientsByName = async (query: string): Promise<Client[]> => {
+  try {
+    if (!query) {
+      return await getClients();
+    }
+
+    const { data: clientsData, error: clientsError } = await supabase
+      .from('clients')
+      .select(`
+        id,
+        name,
+        email,
+        phone,
+        preferred_contact_method,
+        notes,
+        loyalty_points,
+        last_service_date,
+        created_at
+      `)
+      .ilike('name', `%${query}%`);
+
+    if (clientsError) {
+      toast.error("Error al buscar clientes: " + clientsError.message);
+      return [];
+    }
+
+    // Obtener vehículos para cada cliente
+    const clientsWithVehicles = await Promise.all(
+      clientsData.map(async (client) => {
+        const { data: vehiclesData, error: vehiclesError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('client_id', client.id);
+
+        if (vehiclesError) {
+          toast.error("Error al obtener vehículos: " + vehiclesError.message);
+          return {
+            ...mapClientFromSupabase(client),
+            vehicles: [],
+          };
+        }
+
+        return {
+          ...mapClientFromSupabase(client),
+          vehicles: vehiclesData.map(mapVehicleFromSupabase),
+        };
+      })
+    );
+
+    return clientsWithVehicles;
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return [];
+  }
 };
 
 // Agregar un nuevo cliente
-export const addClient = (client: Omit<Client, "id">): Client => {
-  const newClient: Client = {
-    ...client,
-    id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
-  };
-  
-  sampleClients = [...sampleClients, newClient];
-  return newClient;
+export const addClient = async (client: Omit<Client, "id" | "vehicles">): Promise<Client | undefined> => {
+  try {
+    const { data: newClient, error } = await supabase
+      .from('clients')
+      .insert({
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        preferred_contact_method: client.preferredContactMethod,
+        notes: client.notes,
+        loyalty_points: client.loyaltyPoints,
+        last_service_date: client.lastServiceDate ? new Date(client.lastServiceDate) : null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Error al agregar cliente: " + error.message);
+      return undefined;
+    }
+
+    return {
+      ...mapClientFromSupabase(newClient),
+      vehicles: [],
+    };
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
+  }
 };
 
 // Actualizar puntos de fidelización
-export const updateLoyaltyPoints = (clientId: string, points: number): Client | undefined => {
-  const clientIndex = sampleClients.findIndex(client => client.id === clientId);
-  
-  if (clientIndex !== -1) {
-    const updatedClient = {
-      ...sampleClients[clientIndex],
-      loyaltyPoints: sampleClients[clientIndex].loyaltyPoints + points
+export const updateLoyaltyPoints = async (clientId: string, points: number): Promise<Client | undefined> => {
+  try {
+    // Primero obtenemos los puntos actuales
+    const { data: currentClient, error: fetchError } = await supabase
+      .from('clients')
+      .select('loyalty_points')
+      .eq('id', clientId)
+      .maybeSingle();
+
+    if (fetchError || !currentClient) {
+      if (fetchError) {
+        toast.error("Error al obtener cliente: " + fetchError.message);
+      }
+      return undefined;
+    }
+
+    const newPoints = currentClient.loyalty_points + points;
+
+    // Ahora actualizamos los puntos
+    const { data: updatedClient, error: updateError } = await supabase
+      .from('clients')
+      .update({ loyalty_points: newPoints })
+      .eq('id', clientId)
+      .select()
+      .single();
+
+    if (updateError) {
+      toast.error("Error al actualizar puntos: " + updateError.message);
+      return undefined;
+    }
+
+    // Obtenemos los vehículos del cliente
+    const { data: vehicles, error: vehiclesError } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('client_id', clientId);
+
+    if (vehiclesError) {
+      toast.error("Error al obtener vehículos: " + vehiclesError.message);
+      return {
+        ...mapClientFromSupabase(updatedClient),
+        vehicles: [],
+      };
+    }
+
+    return {
+      ...mapClientFromSupabase(updatedClient),
+      vehicles: vehicles.map(mapVehicleFromSupabase),
     };
-    
-    sampleClients = [
-      ...sampleClients.slice(0, clientIndex),
-      updatedClient,
-      ...sampleClients.slice(clientIndex + 1)
-    ];
-    
-    return updatedClient;
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
   }
-  
-  return undefined;
 };
 
 // Agregar un nuevo vehículo a un cliente
-export const addVehicleToClient = (clientId: string, vehicle: Omit<Vehicle, "id">): Client | undefined => {
-  const clientIndex = sampleClients.findIndex(client => client.id === clientId);
-  
-  if (clientIndex !== -1) {
-    const newVehicle: Vehicle = {
-      ...vehicle,
-      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
-    };
-    
-    const updatedClient = {
-      ...sampleClients[clientIndex],
-      vehicles: [...sampleClients[clientIndex].vehicles, newVehicle]
-    };
-    
-    sampleClients = [
-      ...sampleClients.slice(0, clientIndex),
-      updatedClient,
-      ...sampleClients.slice(clientIndex + 1)
-    ];
-    
-    return updatedClient;
+export const addVehicleToClient = async (clientId: string, vehicle: Omit<Vehicle, "id">): Promise<Client | undefined> => {
+  try {
+    const { data: newVehicle, error: vehicleError } = await supabase
+      .from('vehicles')
+      .insert({
+        client_id: clientId,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        license_plate: vehicle.licensePlate,
+        type: vehicle.type,
+        color: vehicle.color,
+      })
+      .select()
+      .single();
+
+    if (vehicleError) {
+      toast.error("Error al agregar vehículo: " + vehicleError.message);
+      return undefined;
+    }
+
+    // Obtener el cliente actualizado con todos sus vehículos
+    return await getClientById(clientId);
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
   }
-  
-  return undefined;
 };
 
 // Actualizar la fecha del último servicio
-export const updateLastServiceDate = (clientId: string, date: string): Client | undefined => {
-  const clientIndex = sampleClients.findIndex(client => client.id === clientId);
-  
-  if (clientIndex !== -1) {
-    const updatedClient = {
-      ...sampleClients[clientIndex],
-      lastServiceDate: date
+export const updateLastServiceDate = async (clientId: string, date: string): Promise<Client | undefined> => {
+  try {
+    const formattedDate = new Date(date);
+
+    const { data: updatedClient, error } = await supabase
+      .from('clients')
+      .update({ last_service_date: formattedDate })
+      .eq('id', clientId)
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Error al actualizar fecha de servicio: " + error.message);
+      return undefined;
+    }
+
+    // Obtener los vehículos del cliente
+    const { data: vehicles, error: vehiclesError } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('client_id', clientId);
+
+    if (vehiclesError) {
+      toast.error("Error al obtener vehículos: " + vehiclesError.message);
+      return {
+        ...mapClientFromSupabase(updatedClient),
+        vehicles: [],
+      };
+    }
+
+    return {
+      ...mapClientFromSupabase(updatedClient),
+      vehicles: vehicles.map(mapVehicleFromSupabase),
     };
-    
-    sampleClients = [
-      ...sampleClients.slice(0, clientIndex),
-      updatedClient,
-      ...sampleClients.slice(clientIndex + 1)
-    ];
-    
-    return updatedClient;
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
   }
+};
+
+// Funciones de mapeo para convertir de formato Supabase a formato de la aplicación
+const mapClientFromSupabase = (client: any): Omit<Client, "vehicles"> => {
+  return {
+    id: client.id,
+    name: client.name,
+    email: client.email,
+    phone: client.phone,
+    preferredContactMethod: client.preferred_contact_method,
+    notes: client.notes || "",
+    loyaltyPoints: client.loyalty_points,
+    lastServiceDate: client.last_service_date ? formatDateFromDB(client.last_service_date) : null,
+  };
+};
+
+const mapVehicleFromSupabase = (vehicle: any): Vehicle => {
+  return {
+    id: vehicle.id,
+    make: vehicle.make,
+    model: vehicle.model,
+    year: vehicle.year,
+    licensePlate: vehicle.license_plate,
+    type: vehicle.type,
+    color: vehicle.color,
+  };
+};
+
+// Formatear fecha de la base de datos (YYYY-MM-DD) a formato de la aplicación (DD/MM/YYYY)
+const formatDateFromDB = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
   
-  return undefined;
+  return `${day}/${month}/${year}`;
 };

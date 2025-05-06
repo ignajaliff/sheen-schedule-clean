@@ -1,4 +1,7 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
 export interface Appointment {
   id: string;
   clientName: string;
@@ -10,155 +13,159 @@ export interface Appointment {
   status: "pending" | "completed" | "cancelled";
 }
 
-// Datos de ejemplo
-let sampleAppointments: Appointment[] = [
-  {
-    id: "1",
-    clientName: "Carlos Rodríguez",
-    date: "05/05/2025",
-    time: "10:00",
-    serviceType: "Lavado completo",
-    location: "Taller principal",
-    isHomeService: false,
-    status: "pending"
-  },
-  {
-    id: "2",
-    clientName: "María González",
-    date: "05/05/2025",
-    time: "11:30",
-    serviceType: "Lavado exterior",
-    location: "Av. Libertad 1250",
-    isHomeService: true,
-    status: "pending"
-  },
-  {
-    id: "3",
-    clientName: "Juan Pérez",
-    date: "05/05/2025",
-    time: "14:00",
-    serviceType: "Lavado y encerado",
-    location: "Taller principal",
-    isHomeService: false,
-    status: "completed"
-  },
-  {
-    id: "4",
-    clientName: "Ana Martínez",
-    date: "06/05/2025",
-    time: "09:15",
-    serviceType: "Limpieza de interiores",
-    location: "Calle Robles 456",
-    isHomeService: true,
-    status: "completed"
-  },
-  {
-    id: "5",
-    clientName: "Roberto Fernández",
-    date: "06/05/2025",
-    time: "16:30",
-    serviceType: "Lavado premium",
-    location: "Taller principal",
-    isHomeService: false,
-    status: "cancelled"
-  },
-  {
-    id: "6",
-    clientName: "Laura Díaz",
-    date: "07/05/2025",
-    time: "11:00",
-    serviceType: "Lavado completo",
-    location: "Av. Principal 789",
-    isHomeService: true,
-    status: "pending"
-  },
-  {
-    id: "7",
-    clientName: "Daniel Torres",
-    date: "07/05/2025",
-    time: "15:45",
-    serviceType: "Limpieza de tapicería",
-    location: "Taller principal",
-    isHomeService: false,
-    status: "pending"
-  },
-  {
-    id: "8",
-    clientName: "Carolina Sánchez",
-    date: "08/05/2025",
-    time: "10:30",
-    serviceType: "Lavado y encerado",
-    location: "Calle Norte 321",
-    isHomeService: true,
-    status: "pending"
-  }
-];
-
 // Servicio para obtener los turnos
-export const getAppointments = (): Appointment[] => {
-  return sampleAppointments;
+export const getAppointments = async (): Promise<Appointment[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*');
+
+    if (error) {
+      toast.error("Error al obtener turnos: " + error.message);
+      return [];
+    }
+
+    return data.map(mapAppointmentFromSupabase);
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return [];
+  }
 };
 
 // Servicio para obtener un turno por ID
-export const getAppointmentById = (id: string): Appointment | undefined => {
-  return sampleAppointments.find(appointment => appointment.id === id);
+export const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {
+  try {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) {
+        toast.error("Error al obtener turno: " + error.message);
+      }
+      return undefined;
+    }
+
+    return mapAppointmentFromSupabase(data);
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
+  }
 };
 
 // Filtrar turnos por estado
-export const getAppointmentsByStatus = (status: string): Appointment[] => {
-  if (status === 'all') return sampleAppointments;
-  return sampleAppointments.filter(appointment => appointment.status === status);
+export const getAppointmentsByStatus = async (status: string): Promise<Appointment[]> => {
+  try {
+    if (status === 'all') {
+      return await getAppointments();
+    }
+
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('status', status);
+
+    if (error) {
+      toast.error("Error al filtrar turnos: " + error.message);
+      return [];
+    }
+
+    return data.map(mapAppointmentFromSupabase);
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return [];
+  }
 };
 
 // Obtener estadísticas
-export const getAppointmentStats = () => {
-  const total = sampleAppointments.length;
-  const completed = sampleAppointments.filter(app => app.status === "completed").length;
-  const cancelled = sampleAppointments.filter(app => app.status === "cancelled").length;
-  const pending = sampleAppointments.filter(app => app.status === "pending").length;
-  
-  const homeServices = sampleAppointments.filter(app => app.isHomeService).length;
-  const workshopServices = sampleAppointments.filter(app => !app.isHomeService).length;
-  
-  // Conteo de tipos de servicio
-  const serviceTypes: Record<string, number> = {};
-  sampleAppointments.forEach(app => {
-    if (serviceTypes[app.serviceType]) {
-      serviceTypes[app.serviceType]++;
-    } else {
-      serviceTypes[app.serviceType] = 1;
-    }
-  });
-  
-  return {
-    total,
-    completed,
-    cancelled,
-    pending,
-    completionRate: total > 0 ? (completed / total) * 100 : 0,
-    homeServices,
-    workshopServices,
-    serviceTypes
-  };
-};
+export const getAppointmentStats = async () => {
+  try {
+    const { data: appointments, error } = await supabase
+      .from('appointments')
+      .select('*');
 
-// Generar un ID único
-const generateId = (): string => {
-  return Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+    if (error) {
+      toast.error("Error al obtener estadísticas: " + error.message);
+      return {
+        total: 0,
+        completed: 0,
+        cancelled: 0,
+        pending: 0,
+        completionRate: 0,
+        homeServices: 0,
+        workshopServices: 0,
+        serviceTypes: {}
+      };
+    }
+
+    const total = appointments.length;
+    const completed = appointments.filter(app => app.status === "completed").length;
+    const cancelled = appointments.filter(app => app.status === "cancelled").length;
+    const pending = appointments.filter(app => app.status === "pending").length;
+    
+    const homeServices = appointments.filter(app => app.is_home_service).length;
+    const workshopServices = appointments.filter(app => !app.is_home_service).length;
+    
+    // Conteo de tipos de servicio
+    const serviceTypes: Record<string, number> = {};
+    appointments.forEach(app => {
+      if (serviceTypes[app.service_type]) {
+        serviceTypes[app.service_type]++;
+      } else {
+        serviceTypes[app.service_type] = 1;
+      }
+    });
+    
+    return {
+      total,
+      completed,
+      cancelled,
+      pending,
+      completionRate: total > 0 ? (completed / total) * 100 : 0,
+      homeServices,
+      workshopServices,
+      serviceTypes
+    };
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return {
+      total: 0,
+      completed: 0,
+      cancelled: 0,
+      pending: 0,
+      completionRate: 0,
+      homeServices: 0,
+      workshopServices: 0,
+      serviceTypes: {}
+    };
+  }
 };
 
 // Verificar disponibilidad del horario
-export const checkTimeAvailability = (date: Date, time: string): number => {
-  const formattedDate = formatDate(date);
-  
-  // Contar cuántos turnos hay para la misma fecha y hora
-  const appointmentsAtSameTime = sampleAppointments.filter(app => 
-    app.date === formattedDate && 
-    app.time === time &&
-    app.status !== "cancelled" // No contamos los cancelados
-  );
-  
-  return appointmentsAtSameTime.length;
+export const checkTimeAvailability = async (date: Date, time: string): Promise<number> => {
+  try {
+    const formattedDate = formatDateForDB(date);
+    
+    // Contar cuántos turnos hay para la misma fecha y hora
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('date', formattedDate)
+      .eq('time', time)
+      .neq('status', 'cancelled');
+      
+    if (error) {
+      toast.error("Error al verificar disponibilidad: " + error.message);
+      return 0;
+    }
+    
+    return data.length;
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return 0;
+  }
 };
 
 // Agregar un nuevo turno
@@ -171,58 +178,90 @@ export interface NewAppointmentData {
   isHomeService: boolean;
 }
 
-export const addAppointment = (appointmentData: NewAppointmentData): Appointment | { error: string } => {
-  const formattedDate = formatDate(appointmentData.date);
-  
-  // Verificar si hay disponibilidad (máximo 2 turnos por horario)
-  const currentAppointments = checkTimeAvailability(appointmentData.date, appointmentData.time);
-  
-  if (currentAppointments >= 2) {
-    return { error: "Horario no disponible. Ya hay 2 turnos agendados para este horario." };
+export const addAppointment = async (appointmentData: NewAppointmentData): Promise<Appointment | { error: string }> => {
+  try {
+    const formattedDate = formatDateForDB(appointmentData.date);
+    
+    // Verificar si hay disponibilidad (máximo 2 turnos por horario)
+    const currentAppointments = await checkTimeAvailability(appointmentData.date, appointmentData.time);
+    
+    if (currentAppointments >= 2) {
+      return { error: "Horario no disponible. Ya hay 2 turnos agendados para este horario." };
+    }
+    
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        client_name: appointmentData.clientName,
+        date: formattedDate,
+        time: appointmentData.time,
+        service_type: appointmentData.serviceType,
+        location: appointmentData.isHomeService ? appointmentData.location : "Taller principal",
+        is_home_service: appointmentData.isHomeService,
+        status: "pending"
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      toast.error("Error al crear turno: " + error.message);
+      return { error: "Error al crear turno: " + error.message };
+    }
+    
+    return mapAppointmentFromSupabase(data);
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return { error: "Error inesperado: " + (error as Error).message };
   }
-  
-  const newAppointment: Appointment = {
-    id: generateId(),
-    clientName: appointmentData.clientName,
-    date: formattedDate,
-    time: appointmentData.time,
-    serviceType: appointmentData.serviceType,
-    location: appointmentData.isHomeService ? appointmentData.location : "Taller principal",
-    isHomeService: appointmentData.isHomeService,
-    status: "pending"
-  };
-  
-  sampleAppointments = [...sampleAppointments, newAppointment];
-  return newAppointment;
 };
 
 // Actualizar el estado de un turno
-export const updateAppointmentStatus = (id: string, status: "pending" | "completed" | "cancelled"): Appointment | undefined => {
-  const appointmentIndex = sampleAppointments.findIndex(app => app.id === id);
-  
-  if (appointmentIndex !== -1) {
-    const updatedAppointment = {
-      ...sampleAppointments[appointmentIndex],
-      status
-    };
+export const updateAppointmentStatus = async (id: string, status: "pending" | "completed" | "cancelled"): Promise<Appointment | undefined> => {
+  try {
+    const { data, error } = await supabase
+      .from('appointments')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      toast.error("Error al actualizar estado: " + error.message);
+      return undefined;
+    }
     
-    sampleAppointments = [
-      ...sampleAppointments.slice(0, appointmentIndex),
-      updatedAppointment,
-      ...sampleAppointments.slice(appointmentIndex + 1)
-    ];
-    
-    return updatedAppointment;
+    return mapAppointmentFromSupabase(data);
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    return undefined;
   }
-  
-  return undefined;
 };
 
-// Función auxiliar para formatear la fecha
-const formatDate = (date: Date): string => {
+// Funciones auxiliares para formatear fechas
+const formatDateForDB = (date: Date): string => {
+  return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD para PostgreSQL
+};
+
+// Formatear fecha de la base de datos (YYYY-MM-DD) a formato de la aplicación (DD/MM/YYYY)
+const formatDateFromDB = (dateString: string): string => {
+  const date = new Date(dateString);
   const day = date.getDate().toString().padStart(2, '0');
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const year = date.getFullYear();
   
   return `${day}/${month}/${year}`;
+};
+
+// Función de mapeo para convertir de formato Supabase a formato de la aplicación
+const mapAppointmentFromSupabase = (appointment: any): Appointment => {
+  return {
+    id: appointment.id,
+    clientName: appointment.client_name,
+    date: formatDateFromDB(appointment.date),
+    time: appointment.time,
+    serviceType: appointment.service_type,
+    location: appointment.location,
+    isHomeService: appointment.is_home_service,
+    status: appointment.status as "pending" | "completed" | "cancelled"
+  };
 };

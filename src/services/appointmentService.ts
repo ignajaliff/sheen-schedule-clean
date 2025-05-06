@@ -22,12 +22,19 @@ export const getAppointments = async (): Promise<Appointment[]> => {
 
     if (error) {
       toast.error("Error al obtener turnos: " + error.message);
+      console.error("Error fetching appointments:", error);
+      return [];
+    }
+
+    if (!data || !Array.isArray(data)) {
+      console.error("No data or invalid data format returned from Supabase", data);
       return [];
     }
 
     return data.map(mapAppointmentFromSupabase);
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error fetching appointments:", error);
     return [];
   }
 };
@@ -44,6 +51,7 @@ export const getAppointmentById = async (id: string): Promise<Appointment | unde
     if (error || !data) {
       if (error) {
         toast.error("Error al obtener turno: " + error.message);
+        console.error("Error fetching appointment by ID:", error);
       }
       return undefined;
     }
@@ -51,6 +59,7 @@ export const getAppointmentById = async (id: string): Promise<Appointment | unde
     return mapAppointmentFromSupabase(data);
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error fetching appointment by ID:", error);
     return undefined;
   }
 };
@@ -69,12 +78,19 @@ export const getAppointmentsByStatus = async (status: string): Promise<Appointme
 
     if (error) {
       toast.error("Error al filtrar turnos: " + error.message);
+      console.error("Error filtering appointments by status:", error);
+      return [];
+    }
+
+    if (!data || !Array.isArray(data)) {
+      console.error("No data or invalid data format returned from Supabase when filtering by status", data);
       return [];
     }
 
     return data.map(mapAppointmentFromSupabase);
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error filtering appointments by status:", error);
     return [];
   }
 };
@@ -88,6 +104,21 @@ export const getAppointmentStats = async () => {
 
     if (error) {
       toast.error("Error al obtener estadísticas: " + error.message);
+      console.error("Error fetching appointment statistics:", error);
+      return {
+        total: 0,
+        completed: 0,
+        cancelled: 0,
+        pending: 0,
+        completionRate: 0,
+        homeServices: 0,
+        workshopServices: 0,
+        serviceTypes: {}
+      };
+    }
+
+    if (!appointments || !Array.isArray(appointments)) {
+      console.error("No data or invalid data format returned when fetching statistics", appointments);
       return {
         total: 0,
         completed: 0,
@@ -130,6 +161,7 @@ export const getAppointmentStats = async () => {
     };
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error fetching appointment statistics:", error);
     return {
       total: 0,
       completed: 0,
@@ -158,12 +190,19 @@ export const checkTimeAvailability = async (date: Date, time: string): Promise<n
       
     if (error) {
       toast.error("Error al verificar disponibilidad: " + error.message);
+      console.error("Error checking time availability:", error);
+      return 0;
+    }
+    
+    if (!data || !Array.isArray(data)) {
+      console.error("No data or invalid data format returned when checking availability", data);
       return 0;
     }
     
     return data.length;
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error checking time availability:", error);
     return 0;
   }
 };
@@ -205,12 +244,19 @@ export const addAppointment = async (appointmentData: NewAppointmentData): Promi
       
     if (error) {
       toast.error("Error al crear turno: " + error.message);
+      console.error("Error creating appointment:", error);
       return { error: "Error al crear turno: " + error.message };
+    }
+    
+    if (!data) {
+      console.error("No data returned when creating appointment");
+      return { error: "No se pudo crear el turno: No se recibieron datos del servidor" };
     }
     
     return mapAppointmentFromSupabase(data);
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error creating appointment:", error);
     return { error: "Error inesperado: " + (error as Error).message };
   }
 };
@@ -227,12 +273,19 @@ export const updateAppointmentStatus = async (id: string, status: "pending" | "c
       
     if (error) {
       toast.error("Error al actualizar estado: " + error.message);
+      console.error("Error updating appointment status:", error);
+      return undefined;
+    }
+    
+    if (!data) {
+      console.error("No data returned when updating appointment status");
       return undefined;
     }
     
     return mapAppointmentFromSupabase(data);
   } catch (error) {
     toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error updating appointment status:", error);
     return undefined;
   }
 };
@@ -257,14 +310,24 @@ const formatDateFromDB = (dateString: string): string => {
 
 // Función de mapeo para convertir de formato Supabase a formato de la aplicación
 const mapAppointmentFromSupabase = (appointment: any): Appointment => {
-  return {
-    id: appointment.id,
-    clientName: appointment.client_name,
-    date: formatDateFromDB(appointment.date),
-    time: appointment.time,
-    serviceType: appointment.service_type,
-    location: appointment.location,
-    isHomeService: appointment.is_home_service,
-    status: appointment.status as "pending" | "completed" | "cancelled"
-  };
+  if (!appointment) {
+    console.error("Tried to map undefined or null appointment", appointment);
+    throw new Error("No se puede mapear un turno nulo o indefinido");
+  }
+
+  try {
+    return {
+      id: appointment.id,
+      clientName: appointment.client_name,
+      date: formatDateFromDB(appointment.date),
+      time: appointment.time,
+      serviceType: appointment.service_type,
+      location: appointment.location,
+      isHomeService: appointment.is_home_service,
+      status: appointment.status as "pending" | "completed" | "cancelled"
+    };
+  } catch (error) {
+    console.error("Error mapping appointment from Supabase", error, appointment);
+    throw error;
+  }
 };

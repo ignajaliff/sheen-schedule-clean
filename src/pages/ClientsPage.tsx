@@ -6,25 +6,52 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
-import { getClients, searchClientsByName, Client } from "@/services/clientService";
+import { getClients, searchClients, Client, getVehiclesByClientId, Vehicle } from "@/services/clientService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 const ClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientVehicles, setClientVehicles] = useState<{[clientId: string]: Vehicle[]}>({});
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClientVehicles, setSelectedClientVehicles] = useState<Vehicle[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    if (searchTerm) {
-      setClients(searchClientsByName(searchTerm));
-    } else {
-      setClients(getClients());
-    }
+    const fetchClients = async () => {
+      setIsLoading(true);
+      try {
+        const clientsData = searchTerm ? await searchClients(searchTerm) : await getClients();
+        setClients(clientsData);
+        
+        // Fetch vehicles for each client
+        const vehiclesMap: {[clientId: string]: Vehicle[]} = {};
+        for (const client of clientsData) {
+          const vehicles = await getVehiclesByClientId(client.id);
+          vehiclesMap[client.id] = vehicles;
+        }
+        setClientVehicles(vehiclesMap);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchClients();
   }, [searchTerm]);
   
-  const openClientDetails = (client: Client) => {
+  const openClientDetails = async (client: Client) => {
     setSelectedClient(client);
+    // Fetch vehicles for the selected client
+    try {
+      const vehicles = await getVehiclesByClientId(client.id);
+      setSelectedClientVehicles(vehicles);
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+      setSelectedClientVehicles([]);
+    }
   };
 
   const getContactMethodIcon = (method: string) => {
@@ -58,7 +85,11 @@ const ClientsPage = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-          {clients.length > 0 ? (
+          {isLoading ? (
+            <div className="col-span-2 text-center py-10">
+              <p className="text-gray-500">Cargando clientes...</p>
+            </div>
+          ) : clients.length > 0 ? (
             clients.map((client) => (
               <Card 
                 key={client.id} 
@@ -88,7 +119,7 @@ const ClientsPage = () => {
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
-                      {client.vehicles.map((vehicle) => (
+                      {clientVehicles[client.id]?.map((vehicle) => (
                         <div key={vehicle.id} className="flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 text-xs">
                           <Car size={14} />
                           <span>{vehicle.make} {vehicle.model}</span>
@@ -179,7 +210,7 @@ const ClientsPage = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Vehículos</h3>
                   <div className="grid grid-cols-1 gap-3">
-                    {selectedClient.vehicles.map((vehicle) => (
+                    {selectedClientVehicles.map((vehicle) => (
                       <div key={vehicle.id} className="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
                         <div>
                           <div className="font-medium">{vehicle.make} {vehicle.model} ({vehicle.year})</div>

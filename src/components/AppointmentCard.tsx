@@ -1,33 +1,20 @@
 
 import { Calendar, Clock, MapPin, User, Droplets } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Appointment } from "@/services/appointmentService";
 
 interface AppointmentCardProps {
-  id: string;
-  clientName: string;
-  date: string;
-  time: string;
-  serviceType: string;
-  location: string;
-  isHomeService: boolean;
-  status: "pending" | "completed" | "cancelled";
-  onClick: () => void;
+  appointment: Appointment; 
+  onStatusUpdated: () => void;
 }
 
 const AppointmentCard = ({
-  id,
-  clientName,
-  date,
-  time,
-  serviceType,
-  location,
-  isHomeService,
-  status,
-  onClick
+  appointment,
+  onStatusUpdated
 }: AppointmentCardProps) => {
   
   const getStatusColor = () => {
-    switch(status) {
+    switch(appointment.status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "completed":
@@ -40,7 +27,7 @@ const AppointmentCard = ({
   };
   
   const getStatusText = () => {
-    switch(status) {
+    switch(appointment.status) {
       case "pending":
         return "Pendiente";
       case "completed":
@@ -55,12 +42,12 @@ const AppointmentCard = ({
   return (
     <div 
       className="cleanly-card mb-4 p-4 cursor-pointer transform transition hover:-translate-y-1 animate-fade-in"
-      onClick={onClick}
+      onClick={() => onStatusUpdated()}
     >
       <div className="flex justify-between items-start mb-3">
         <h3 className="font-medium text-lg flex items-center">
           <User size={16} className="text-cleanly-blue mr-2" />
-          {clientName}
+          {appointment.clientName}
         </h3>
         <Badge className={`${getStatusColor()} px-2 py-1 capitalize`}>
           {getStatusText()}
@@ -70,23 +57,23 @@ const AppointmentCard = ({
       <div className="grid grid-cols-2 gap-2 mb-2">
         <div className="flex items-center text-sm text-gray-600">
           <Calendar size={14} className="mr-2 text-cleanly-blue" />
-          {date}
+          {appointment.date}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <Clock size={14} className="mr-2 text-cleanly-blue" />
-          {time}
+          {appointment.time}
         </div>
       </div>
       
       <div className="mb-2 flex items-center text-sm text-gray-600">
         <Droplets size={14} className="mr-2 text-cleanly-blue" />
-        {serviceType}
+        {appointment.serviceType}
       </div>
       
-      {isHomeService && (
+      {appointment.isHomeService && (
         <div className="flex items-center text-sm text-gray-600">
           <MapPin size={14} className="mr-2 text-cleanly-red" />
-          <span className="font-medium">{location}</span>
+          <span className="font-medium">{appointment.location}</span>
         </div>
       )}
     </div>

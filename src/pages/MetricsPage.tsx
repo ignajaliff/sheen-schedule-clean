@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, PieChart, Pie, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,7 +15,33 @@ import {
 } from "@/components/ui/chart";
 
 const MetricsPage = () => {
-  const stats = getAppointmentStats();
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    cancelled: 0,
+    pending: 0,
+    completionRate: 0,
+    homeServices: 0,
+    workshopServices: 0,
+    serviceTypes: {} as Record<string, number>
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const loadStats = async () => {
+      setIsLoading(true);
+      try {
+        const statsData = await getAppointmentStats();
+        setStats(statsData);
+      } catch (error) {
+        console.error("Error loading stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadStats();
+  }, []);
   
   // Datos para el gráfico circular con colores profesionales
   const statusData = [
@@ -59,6 +86,17 @@ const MetricsPage = () => {
       theme: { light: "hsl(354, 70%, 54%)", dark: "hsl(354, 70%, 60%)" },
     },
   };
+
+  if (isLoading) {
+    return (
+      <div className="pb-20 md:pb-5 md:pl-20">
+        <Header title="Estadísticas" />
+        <main className="pt-20 px-4 flex justify-center items-center">
+          <p>Cargando estadísticas...</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20 md:pb-5 md:pl-20">

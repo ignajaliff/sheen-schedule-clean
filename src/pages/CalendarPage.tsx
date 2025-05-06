@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format, startOfWeek, endOfWeek, startOfDay, addDays, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
@@ -16,11 +17,24 @@ const CalendarPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [activeView, setActiveView] = useState("week");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   
   useEffect(() => {
-    // Cargar los turnos cada vez que refreshKey cambie
-    setAppointments(getAppointments());
+    const loadAppointments = async () => {
+      setIsLoading(true);
+      try {
+        const appointmentsData = await getAppointments();
+        setAppointments(appointmentsData);
+      } catch (error) {
+        toast.error("Error al cargar los turnos");
+        console.error("Error loading appointments:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadAppointments();
   }, [refreshKey]);
   
   const getDaysOfWeek = () => {
@@ -39,6 +53,8 @@ const CalendarPage = () => {
   };
   
   const getAppointmentsForDay = (date: Date) => {
+    if (!appointments || !Array.isArray(appointments)) return [];
+    
     return appointments.filter(appointment => {
       const [day, month, year] = appointment.date.split('/');
       const appointmentDate = new Date(Number(year), Number(month) - 1, Number(day));
@@ -68,23 +84,32 @@ const CalendarPage = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
 
-  const handleStatusUpdate = (id: string, status: "completed" | "cancelled") => {
-    const updatedAppointment = updateAppointmentStatus(id, status);
-    
-    if (updatedAppointment) {
-      setRefreshKey(prevKey => prevKey + 1);
-      setSelectedAppointment(null);
+  const handleStatusUpdate = async (id: string, status: "completed" | "cancelled") => {
+    try {
+      const updatedAppointment = await updateAppointmentStatus(id, status);
       
-      if (status === "completed") {
-        toast.success("Turno completado correctamente");
-      } else {
-        toast.info("Turno cancelado");
+      if (updatedAppointment) {
+        setRefreshKey(prevKey => prevKey + 1);
+        setSelectedAppointment(null);
+        
+        if (status === "completed") {
+          toast.success("Turno completado correctamente");
+        } else {
+          toast.info("Turno cancelado");
+        }
       }
+    } catch (error) {
+      toast.error("Error al actualizar el estado del turno");
+      console.error("Error updating appointment status:", error);
     }
   };
   
   // Renderizar la vista de semana
   const renderWeekView = () => {
+    if (isLoading) {
+      return <div className="flex justify-center items-center h-[calc(100vh-170px)]">Cargando...</div>;
+    }
+    
     const days = getDaysOfWeek();
     
     return (
@@ -145,6 +170,10 @@ const CalendarPage = () => {
   
   // Renderizar la vista de día
   const renderDayView = () => {
+    if (isLoading) {
+      return <div className="flex justify-center items-center h-[calc(100vh-170px)]">Cargando...</div>;
+    }
+    
     const appointmentsForDay = getAppointmentsForDay(selectedDate);
     const hours = Array.from({ length: 10 }, (_, i) => i + 9); // 9:00 - 18:00
     

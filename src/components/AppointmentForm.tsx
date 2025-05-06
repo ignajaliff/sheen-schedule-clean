@@ -1,331 +1,227 @@
 
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CarIcon, Calendar as CalendarIcon, Clock, Droplets, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { addAppointment, NewAppointmentData, checkTimeAvailability } from "@/services/appointmentService";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { addAppointment, checkTimeAvailability, NewAppointmentData } from "@/services/appointmentService";
+import { CalendarIcon } from "lucide-react";
 
 interface AppointmentFormProps {
   open: boolean;
   onClose: () => void;
-  onAppointmentAdded?: () => void;
+  onAppointmentAdded: () => void;
 }
 
-const services = [
-  "Lavado básico",
-  "Lavado completo",
-  "Lavado exterior",
-  "Lavado y encerado",
-  "Limpieza de interiores",
-  "Lavado premium",
-  "Limpieza de tapicería"
-];
-
-const times = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", 
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", 
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
-];
-
 const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormProps) => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [serviceLocation, setServiceLocation] = useState("workshop");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<NewAppointmentData>({
     clientName: "",
-    serviceType: "",
-    time: "",
-    location: ""
+    date: new Date(),
+    time: "10:00",
+    serviceType: "Lavado completo",
+    location: "",
+    isHomeService: false
   });
   
-  const [errors, setErrors] = useState({
-    clientName: false,
-    serviceType: false,
-    time: false,
-    location: false
-  });
+  const [isLoading, setIsLoading] = useState(false);
   
-  const [availabilityInfo, setAvailabilityInfo] = useState<{count: number, available: boolean} | null>(null);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    if (value) {
-      setErrors({
-        ...errors,
-        [name]: false
-      });
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    setErrors({
-      ...errors,
-      [name]: false
-    });
-    
-    // Si cambia la hora, verificar disponibilidad
-    if (name === "time" && date) {
-      checkAvailability(date, value);
+  
+  const handleSelectChange = (name: keyof NewAppointmentData, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setFormData(prev => ({ ...prev, date }));
     }
   };
   
-  // Verifica la disponibilidad cuando cambia la fecha o la hora
-  const checkAvailability = (selectedDate: Date, selectedTime: string) => {
-    if (!selectedTime) return;
-    
-    const appointmentsCount = checkTimeAvailability(selectedDate, selectedTime);
-    setAvailabilityInfo({
-      count: appointmentsCount,
-      available: appointmentsCount < 2
-    });
+  const handleHomeServiceChange = (checked: boolean) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      isHomeService: checked,
+      location: checked ? prev.location : ""
+    }));
   };
   
-  // Actualizar cuando cambia la fecha
-  const handleDateChange = (selectedDate: Date | undefined) => {
-    setDate(selectedDate);
-    if (selectedDate && formData.time) {
-      checkAvailability(selectedDate, formData.time);
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {
-      clientName: !formData.clientName,
-      serviceType: !formData.serviceType,
-      time: !formData.time,
-      location: serviceLocation === "home" && !formData.location
-    };
-    
-    setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      clientName: "",
-      serviceType: "",
-      time: "",
-      location: ""
-    });
-    setServiceLocation("workshop");
-    setDate(new Date());
-    setAvailabilityInfo(null);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (validateForm() && date) {
-      const appointmentData: NewAppointmentData = {
-        clientName: formData.clientName,
-        date: date,
-        time: formData.time,
-        serviceType: formData.serviceType,
-        location: formData.location,
-        isHomeService: serviceLocation === "home"
-      };
-      
-      // Agregar el nuevo turno
-      const result = addAppointment(appointmentData);
-      
-      if ('error' in result) {
-        toast.error(result.error);
+    try {
+      // Validar que todos los campos estén completos
+      if (!formData.clientName) {
+        toast.error("Debe ingresar el nombre del cliente");
+        setIsLoading(false);
         return;
       }
       
-      toast.success("Turno agendado correctamente", {
-        description: `${formData.clientName} - ${format(date, "dd/MM/yyyy")} ${formData.time}`
-      });
-      
-      // Notificar que se ha agregado un turno (para actualizar vistas)
-      if (onAppointmentAdded) {
-        onAppointmentAdded();
+      if (formData.isHomeService && !formData.location) {
+        toast.error("Debe ingresar la dirección para servicio a domicilio");
+        setIsLoading(false);
+        return;
       }
       
-      resetForm();
-      onClose();
+      // Verificar disponibilidad del horario
+      const currentAppointments = await checkTimeAvailability(formData.date, formData.time);
+      
+      if (currentAppointments >= 2) {
+        toast.error("Horario no disponible. Ya hay 2 turnos agendados para este horario.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Enviar los datos del formulario
+      const result = await addAppointment(formData);
+      
+      if ('error' in result) {
+        toast.error(result.error);
+      } else {
+        toast.success("Turno agendado correctamente");
+        onAppointmentAdded();
+        onClose();
+        // Resetear el formulario
+        setFormData({
+          clientName: "",
+          date: new Date(),
+          time: "10:00",
+          serviceType: "Lavado completo",
+          location: "",
+          isHomeService: false
+        });
+      }
+    } catch (error) {
+      toast.error("Error al agendar el turno: " + (error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-6 animate-fade-in">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-xl text-center flex items-center justify-center">
-            <CarIcon className="mr-2 text-cleanly-blue" />
-            Nuevo Turno
-          </DialogTitle>
+          <DialogTitle className="text-xl">Agendar Nuevo Turno</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="clientName">Nombre del Cliente</Label>
-            <Input
+            <Input 
               id="clientName"
               name="clientName"
               value={formData.clientName}
               onChange={handleInputChange}
-              className={errors.clientName ? "border-red-500" : ""}
+              placeholder="Nombre completo"
+              className="mt-1"
             />
-            {errors.clientName && (
-              <p className="text-red-500 text-xs">El nombre del cliente es requerido</p>
-            )}
           </div>
           
-          <div className="space-y-2">
-            <Label>Fecha</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Seleccionar fecha</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 pointer-events-auto">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={handleDateChange}
-                  initialFocus
-                  className="p-3"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Hora</Label>
-            <Select 
-              onValueChange={(value) => handleSelectChange("time", value)}
-              value={formData.time}
-            >
-              <SelectTrigger className={errors.time ? "border-red-500" : ""}>
-                <SelectValue placeholder="Seleccionar horario">
-                  <div className="flex items-center">
-                    <Clock className="mr-2 h-4 w-4" />
-                    {formData.time || "Seleccionar horario"}
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {times.map((time) => (
-                  <SelectItem key={time} value={time}>{time}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.time && (
-              <p className="text-red-500 text-xs">Seleccione un horario</p>
-            )}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Fecha</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className="w-full justify-start text-left font-normal mt-1"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(formData.date, "PPP", { locale: es })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.date}
+                    onSelect={handleDateSelect}
+                    locale={es}
+                    fromDate={new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             
-            {/* Mostrar información de disponibilidad */}
-            {availabilityInfo && (
-              <div className={cn(
-                "text-xs p-2 rounded-md flex items-center mt-1",
-                availabilityInfo.available 
-                  ? availabilityInfo.count === 0 ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700" 
-                  : "bg-red-50 text-red-700"
-              )}>
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {availabilityInfo.count === 0 && "Horario completamente disponible"}
-                {availabilityInfo.count === 1 && "Queda 1 turno disponible para este horario"}
-                {availabilityInfo.count >= 2 && "No hay turnos disponibles para este horario"}
-              </div>
-            )}
+            <div>
+              <Label htmlFor="time">Hora</Label>
+              <Select
+                value={formData.time}
+                onValueChange={(value) => handleSelectChange("time", value)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Seleccionar hora" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 10 }, (_, i) => i + 9).map((hour) => (
+                    <SelectItem key={hour} value={`${hour}:00`}>{`${hour}:00`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          <div className="space-y-2">
-            <Label>Tipo de Servicio</Label>
+          <div>
+            <Label htmlFor="serviceType">Tipo de Servicio</Label>
             <Select
-              onValueChange={(value) => handleSelectChange("serviceType", value)}
               value={formData.serviceType}
+              onValueChange={(value) => handleSelectChange("serviceType", value)}
             >
-              <SelectTrigger className={errors.serviceType ? "border-red-500" : ""}>
-                <SelectValue placeholder="Seleccionar servicio">
-                  <div className="flex items-center">
-                    <Droplets className="mr-2 h-4 w-4" />
-                    {formData.serviceType || "Seleccionar servicio"}
-                  </div>
-                </SelectValue>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Seleccionar servicio" />
               </SelectTrigger>
               <SelectContent>
-                {services.map((service) => (
-                  <SelectItem key={service} value={service}>{service}</SelectItem>
-                ))}
+                <SelectItem value="Lavado completo">Lavado completo</SelectItem>
+                <SelectItem value="Lavado exterior">Lavado exterior</SelectItem>
+                <SelectItem value="Limpieza de interiores">Limpieza de interiores</SelectItem>
+                <SelectItem value="Lavado y encerado">Lavado y encerado</SelectItem>
+                <SelectItem value="Lavado premium">Lavado premium</SelectItem>
+                <SelectItem value="Limpieza de tapicería">Limpieza de tapicería</SelectItem>
               </SelectContent>
             </Select>
-            {errors.serviceType && (
-              <p className="text-red-500 text-xs">Seleccione un tipo de servicio</p>
-            )}
           </div>
           
-          <div className="space-y-2">
-            <Label>Lugar del Servicio</Label>
-            <RadioGroup 
-              value={serviceLocation} 
-              onValueChange={setServiceLocation}
-              className="flex space-x-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="workshop" id="workshop" />
-                <Label htmlFor="workshop" className="cursor-pointer">Taller</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="home" id="home" />
-                <Label htmlFor="home" className="cursor-pointer">Domicilio</Label>
-              </div>
-            </RadioGroup>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isHomeService"
+              checked={formData.isHomeService}
+              onCheckedChange={handleHomeServiceChange}
+            />
+            <Label htmlFor="isHomeService">Servicio a domicilio</Label>
           </div>
           
-          {serviceLocation === "home" && (
-            <div className="space-y-2 animate-fade-in">
+          {formData.isHomeService && (
+            <div>
               <Label htmlFor="location">Dirección</Label>
               <Input
                 id="location"
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                className={errors.location ? "border-red-500" : ""}
+                placeholder="Dirección completa"
+                className="mt-1"
               />
-              {errors.location && (
-                <p className="text-red-500 text-xs">La dirección es requerida para servicios a domicilio</p>
-              )}
             </div>
           )}
           
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" type="button" onClick={onClose}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              className="w-full sm:w-auto bg-cleanly-blue hover:bg-blue-700"
-              disabled={availabilityInfo && !availabilityInfo.available}
-            >
-              Agendar Turno
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Agendando..." : "Agendar Turno"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

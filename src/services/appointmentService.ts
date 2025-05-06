@@ -244,12 +244,15 @@ const formatDateForDB = (date: Date): string => {
 
 // Formatear fecha de la base de datos (YYYY-MM-DD) a formato de la aplicación (DD/MM/YYYY)
 const formatDateFromDB = (dateString: string): string => {
-  const date = new Date(dateString);
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
+  // Parseamos la fecha usando el formato correcto sin ajustar zona horaria
+  const [year, month, day] = dateString.split('-').map(Number);
   
-  return `${day}/${month}/${year}`;
+  // La función Date() interpreta fechas en formato ISO como UTC si no se incluye la hora
+  // Como solo queremos la fecha y no la hora, creamos los componentes individualmente
+  const formattedDay = day.toString().padStart(2, '0');
+  const formattedMonth = month.toString().padStart(2, '0');
+  
+  return `${formattedDay}/${formattedMonth}/${year}`;
 };
 
 // Función de mapeo para convertir de formato Supabase a formato de la aplicación

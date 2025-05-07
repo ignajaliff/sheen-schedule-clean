@@ -11,7 +11,7 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
-          client_id: string | null
+          client_name: string | null
           created_at: string
           date: string
           id: string
@@ -22,7 +22,7 @@ export type Database = {
           time: string
         }
         Insert: {
-          client_id?: string | null
+          client_name?: string | null
           created_at?: string
           date: string
           id?: string
@@ -33,7 +33,7 @@ export type Database = {
           time: string
         }
         Update: {
-          client_id?: string | null
+          client_name?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -43,15 +43,7 @@ export type Database = {
           status?: string
           time?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       clients: {
         Row: {

@@ -10,6 +10,7 @@ import AppointmentForm from "@/components/AppointmentForm";
 import { getAppointments, Appointment, updateAppointmentStatus } from "@/services/appointmentService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CalendarPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -19,6 +20,7 @@ const CalendarPage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     const loadAppointments = async () => {
@@ -39,7 +41,9 @@ const CalendarPage = () => {
   
   const getDaysOfWeek = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+    const end = isMobile 
+      ? addDays(start, 2) // En móvil solo mostramos 3 días (hoy y los dos siguientes)
+      : endOfWeek(selectedDate, { weekStartsOn: 1 });
     
     const days = [];
     let day = start;
@@ -111,9 +115,10 @@ const CalendarPage = () => {
     }
     
     const days = getDaysOfWeek();
+    const columnClass = isMobile ? `grid-cols-${days.length}` : 'grid-cols-7';
     
     return (
-      <div className="grid grid-cols-7 gap-2 h-[calc(100vh-170px)]">
+      <div className={`grid ${columnClass} gap-2 h-[calc(100vh-170px)]`}>
         {days.map((day, index) => {
           const dayAppointments = getAppointmentsForDay(day);
           // Agrupar citas por hora
@@ -140,7 +145,7 @@ const CalendarPage = () => {
                     {appointments.map((appointment, appIndex) => (
                       <div 
                         key={appointment.id}
-                        className={`mb-2 p-2 text-xs border-l-4 rounded cursor-pointer 
+                        className={`mb-2 p-2 text-xs md:text-sm border-l-4 rounded cursor-pointer 
                           ${getAppointmentColor(appointment.status)} 
                           ${appIndex > 0 ? 'relative -mt-1 ml-2 shadow-md' : ''}`}
                         style={{ 
@@ -151,6 +156,9 @@ const CalendarPage = () => {
                       >
                         <p className="font-medium truncate">{appointment.clientName}</p>
                         <p className="text-gray-600">{appointment.time}</p>
+                        {isMobile && (
+                          <p className="text-xs truncate">{appointment.serviceType}</p>
+                        )}
                         {appIndex > 0 && (
                           <span className="absolute top-0 right-1 -mt-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded-sm">
                             +1
@@ -229,6 +237,15 @@ const CalendarPage = () => {
     );
   };
 
+  // Botones de navegación para móvil
+  const handlePrevDays = () => {
+    setSelectedDate(prevDate => addDays(prevDate, -3));
+  };
+
+  const handleNextDays = () => {
+    setSelectedDate(prevDate => addDays(prevDate, 3));
+  };
+
   return (
     <div className="pb-20 md:pb-5 md:pl-20">
       <Header title="Calendario" />
@@ -247,6 +264,16 @@ const CalendarPage = () => {
             </TabsList>
             
             <div className="flex items-center gap-2">
+              {isMobile && activeView === "week" && (
+                <>
+                  <Button variant="outline" size="sm" onClick={handlePrevDays}>
+                    Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleNextDays}>
+                    Siguiente
+                  </Button>
+                </>
+              )}
               <Button variant="outline" onClick={() => setSelectedDate(new Date())}>
                 Hoy
               </Button>

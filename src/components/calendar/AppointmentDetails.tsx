@@ -61,9 +61,15 @@ const AppointmentDetails = ({
             </div>
           </div>
           
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Servicio</h3>
-            <p>{appointment.serviceType}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Servicio</h3>
+              <p>{appointment.serviceType}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Precio</h3>
+              <p className="font-semibold">${new Intl.NumberFormat('es-CL').format(appointment.price || 0)}</p>
+            </div>
           </div>
           
           <div>

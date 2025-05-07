@@ -6,7 +6,9 @@ import {
   BarChart3, 
   Menu, 
   X, 
-  Users
+  Users,
+  DollarSign,
+  Tag
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,6 +41,16 @@ const Navbar = () => {
       name: "Clientes",
       path: "/clients",
       icon: <Users size={20} />
+    },
+    {
+      name: "Servicios",
+      path: "/services",
+      icon: <Tag size={20} />
+    },
+    {
+      name: "Contabilidad",
+      path: "/accounting",
+      icon: <DollarSign size={20} />
     },
     {
       name: "Estadísticas",
@@ -111,7 +123,7 @@ const Navbar = () => {
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t py-1 px-2 z-40">
           <ul className="flex justify-around">
-            {menuItems.map((item) => (
+            {menuItems.slice(0, 5).map((item) => (
               <li key={item.path}>
                 <Link
                   to={item.path}
@@ -125,7 +137,7 @@ const Navbar = () => {
                   `}
                 >
                   {item.icon}
-                  <span className="mt-1">{item.name}</span>
+                  <span className="mt-1">{item.name.substring(0, 4)}.</span>
                 </Link>
               </li>
             ))}

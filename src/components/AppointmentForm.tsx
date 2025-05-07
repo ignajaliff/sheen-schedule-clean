@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { addAppointment, checkTimeAvailability, NewAppointmentData } from "@/services/appointmentService";
+import { getServices, Service } from "@/services/serviceService";
 import { CalendarIcon } from "lucide-react";
 
 interface AppointmentFormProps {
@@ -25,12 +26,29 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
     clientName: "",
     date: new Date(),
     time: "10:00",
-    serviceType: "Lavado completo",
+    serviceType: "",
     location: "",
     isHomeService: false
   });
   
+  const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    const loadServices = async () => {
+      const servicesData = await getServices();
+      setServices(servicesData);
+      
+      // Set default service if available
+      if (servicesData.length > 0 && !formData.serviceType) {
+        setFormData(prev => ({ ...prev, serviceType: servicesData[0].name }));
+      }
+    };
+    
+    if (open) {
+      loadServices();
+    }
+  }, [open]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -73,6 +91,12 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
         return;
       }
       
+      if (!formData.serviceType) {
+        toast.error("Debe seleccionar un tipo de servicio");
+        setIsLoading(false);
+        return;
+      }
+      
       // Verificar disponibilidad del horario
       const currentAppointments = await checkTimeAvailability(formData.date, formData.time);
       
@@ -96,7 +120,7 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
           clientName: "",
           date: new Date(),
           time: "10:00",
-          serviceType: "Lavado completo",
+          serviceType: services.length > 0 ? services[0].name : "",
           location: "",
           isHomeService: false
         });
@@ -181,12 +205,11 @@ const AppointmentForm = ({ open, onClose, onAppointmentAdded }: AppointmentFormP
                 <SelectValue placeholder="Seleccionar servicio" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Lavado completo">Lavado completo</SelectItem>
-                <SelectItem value="Lavado exterior">Lavado exterior</SelectItem>
-                <SelectItem value="Limpieza de interiores">Limpieza de interiores</SelectItem>
-                <SelectItem value="Lavado y encerado">Lavado y encerado</SelectItem>
-                <SelectItem value="Lavado premium">Lavado premium</SelectItem>
-                <SelectItem value="Limpieza de tapicería">Limpieza de tapicería</SelectItem>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.name}>
+                    {service.name} - ${new Intl.NumberFormat('es-CL').format(service.price)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

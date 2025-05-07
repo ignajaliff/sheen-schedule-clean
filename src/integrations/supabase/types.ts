@@ -17,6 +17,7 @@ export type Database = {
           id: string
           is_home_service: boolean
           location: string
+          price: number | null
           service_type: string
           status: string
           time: string
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           is_home_service?: boolean
           location: string
+          price?: number | null
           service_type: string
           status: string
           time: string
@@ -39,6 +41,7 @@ export type Database = {
           id?: string
           is_home_service?: boolean
           location?: string
+          price?: number | null
           service_type?: string
           status?: string
           time?: string
@@ -78,6 +81,30 @@ export type Database = {
           notes?: string | null
           phone?: string
           preferred_contact_method?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string
         }
         Relationships: []
       }

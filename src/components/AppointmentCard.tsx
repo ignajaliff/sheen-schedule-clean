@@ -1,5 +1,5 @@
 
-import { Calendar, Clock, MapPin, User, Droplets } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Droplets, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Appointment } from "@/services/appointmentService";
 
@@ -39,6 +39,11 @@ const AppointmentCard = ({
     }
   };
 
+  const formatPrice = (price: number | null) => {
+    if (price === null) return "$0";
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
+  };
+
   return (
     <div 
       className="cleanly-card mb-4 p-4 cursor-pointer transform transition hover:-translate-y-1 animate-fade-in"
@@ -65,9 +70,15 @@ const AppointmentCard = ({
         </div>
       </div>
       
-      <div className="mb-2 flex items-center text-sm text-gray-600">
-        <Droplets size={14} className="mr-2 text-cleanly-blue" />
-        {appointment.serviceType}
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="flex items-center text-sm text-gray-600">
+          <Droplets size={14} className="mr-2 text-cleanly-blue" />
+          {appointment.serviceType}
+        </div>
+        <div className="flex items-center text-sm text-gray-600">
+          <DollarSign size={14} className="mr-2 text-green-600" />
+          <span className="font-medium">{formatPrice(appointment.price)}</span>
+        </div>
       </div>
       
       {appointment.isHomeService && (

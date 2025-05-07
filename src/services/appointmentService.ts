@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -11,6 +10,7 @@ export interface Appointment {
   location: string;
   isHomeService: boolean;
   status: "pending" | "completed" | "cancelled";
+  price: number | null;
 }
 
 // Servicio para obtener los turnos
@@ -207,6 +207,27 @@ export const checkTimeAvailability = async (date: Date, time: string): Promise<n
   }
 };
 
+// Get price for a service
+export const getServicePrice = async (serviceName: string): Promise<number | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .select('price')
+      .eq('name', serviceName)
+      .maybeSingle();
+      
+    if (error || !data) {
+      console.error("Error fetching service price:", error);
+      return null;
+    }
+    
+    return data.price;
+  } catch (error) {
+    console.error("Unexpected error fetching service price:", error);
+    return null;
+  }
+};
+
 // Agregar un nuevo turno
 export interface NewAppointmentData {
   clientName: string;
@@ -228,6 +249,9 @@ export const addAppointment = async (appointmentData: NewAppointmentData): Promi
       return { error: "Horario no disponible. Ya hay 2 turnos agendados para este horario." };
     }
     
+    // Get price for the selected service
+    const price = await getServicePrice(appointmentData.serviceType);
+    
     const { data, error } = await supabase
       .from('appointments')
       .insert({
@@ -237,7 +261,8 @@ export const addAppointment = async (appointmentData: NewAppointmentData): Promi
         service_type: appointmentData.serviceType,
         location: appointmentData.isHomeService ? appointmentData.location : "Taller principal",
         is_home_service: appointmentData.isHomeService,
-        status: "pending"
+        status: "pending",
+        price: price
       })
       .select()
       .single();
@@ -290,6 +315,29 @@ export const updateAppointmentStatus = async (id: string, status: "pending" | "c
   }
 };
 
+// Get completed appointments for accounting
+export const getCompletedAppointments = async (): Promise<Appointment[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('status', 'completed')
+      .order('date', { ascending: false });
+
+    if (error) {
+      toast.error("Error al obtener turnos completados: " + error.message);
+      console.error("Error fetching completed appointments:", error);
+      return [];
+    }
+
+    return data ? data.map(mapAppointmentFromSupabase) : [];
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error fetching completed appointments:", error);
+    return [];
+  }
+};
+
 // Funciones auxiliares para formatear fechas
 const formatDateForDB = (date: Date): string => {
   return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD para PostgreSQL
@@ -324,7 +372,8 @@ const mapAppointmentFromSupabase = (appointment: any): Appointment => {
       serviceType: appointment.service_type,
       location: appointment.location,
       isHomeService: appointment.is_home_service,
-      status: appointment.status as "pending" | "completed" | "cancelled"
+      status: appointment.status as "pending" | "completed" | "cancelled",
+      price: appointment.price
     };
   } catch (error) {
     console.error("Error mapping appointment from Supabase", error, appointment);

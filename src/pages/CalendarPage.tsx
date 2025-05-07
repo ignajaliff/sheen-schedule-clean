@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
-import { format, startOfWeek, endOfWeek, startOfDay, addDays, isSameDay } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfDay, addDays, isSameDay, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
@@ -10,7 +9,7 @@ import AppointmentForm from "@/components/AppointmentForm";
 import { getAppointments, Appointment, updateAppointmentStatus } from "@/services/appointmentService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useMediaQuery } from "@/hooks/use-mobile";
 
 const CalendarPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -20,7 +19,20 @@ const CalendarPage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Use more granular breakpoints for better responsive design
   const isMobile = useIsMobile();
+  const isSmallMobile = useMediaQuery("(max-width: 430px)");
+  const isMediumMobile = useMediaQuery("(min-width: 431px) and (max-width: 639px)");
+  const isLargeMobile = useMediaQuery("(min-width: 640px) and (max-width: 767px)");
+  
+  // Determine how many days to show based on screen size
+  const getDaysToShow = () => {
+    if (isSmallMobile) return 2; // Smallest screens: 2 days
+    if (isMediumMobile) return 3; // Medium mobile: 3 days
+    if (isLargeMobile) return 4; // Larger mobile devices: 4 days
+    return 7; // Desktop: Full week
+  };
   
   useEffect(() => {
     const loadAppointments = async () => {
@@ -41,8 +53,9 @@ const CalendarPage = () => {
   
   const getDaysOfWeek = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const daysToShow = getDaysToShow();
     const end = isMobile 
-      ? addDays(start, 2) // En móvil solo mostramos 3 días (hoy y los dos siguientes)
+      ? addDays(start, daysToShow - 1) // Show only the calculated number of days on mobile
       : endOfWeek(selectedDate, { weekStartsOn: 1 });
     
     const days = [];
@@ -84,7 +97,6 @@ const CalendarPage = () => {
   };
   
   const handleAppointmentAdded = () => {
-    // Actualizar la lista de turnos
     setRefreshKey(prevKey => prevKey + 1);
   };
 
@@ -115,10 +127,17 @@ const CalendarPage = () => {
     }
     
     const days = getDaysOfWeek();
-    const columnClass = isMobile ? `grid-cols-${days.length}` : 'grid-cols-7';
+    // Responsive grid columns based on number of days
+    const columnClass = isMobile 
+      ? isSmallMobile 
+        ? 'grid-cols-2' 
+        : isMediumMobile 
+          ? 'grid-cols-3' 
+          : 'grid-cols-4'
+      : 'grid-cols-7';
     
     return (
-      <div className={`grid ${columnClass} gap-2 h-[calc(100vh-170px)]`}>
+      <div className={`grid ${columnClass} gap-1 h-[calc(100vh-170px)]`}>
         {days.map((day, index) => {
           const dayAppointments = getAppointmentsForDay(day);
           // Agrupar citas por hora
@@ -134,7 +153,7 @@ const CalendarPage = () => {
           
           return (
             <div key={index} className="flex flex-col h-full">
-              <div className="text-center py-2 border-b sticky top-0 bg-white">
+              <div className="text-center py-2 border-b sticky top-0 bg-white shadow-sm z-10">
                 <p className="text-sm font-medium">{format(day, 'EEE', { locale: es })}</p>
                 <p className="text-lg">{format(day, 'd')}</p>
               </div>
@@ -156,9 +175,7 @@ const CalendarPage = () => {
                       >
                         <p className="font-medium truncate">{appointment.clientName}</p>
                         <p className="text-gray-600">{appointment.time}</p>
-                        {isMobile && (
-                          <p className="text-xs truncate">{appointment.serviceType}</p>
-                        )}
+                        <p className="text-xs truncate">{appointment.serviceType}</p>
                         {appIndex > 0 && (
                           <span className="absolute top-0 right-1 -mt-1 text-[10px] bg-blue-100 text-blue-700 px-1 rounded-sm">
                             +1
@@ -237,13 +254,15 @@ const CalendarPage = () => {
     );
   };
 
-  // Botones de navegación para móvil
+  // Improved navigation buttons for mobile view
   const handlePrevDays = () => {
-    setSelectedDate(prevDate => addDays(prevDate, -3));
+    const daysToMove = getDaysToShow();
+    setSelectedDate(prevDate => subDays(prevDate, daysToMove));
   };
 
   const handleNextDays = () => {
-    setSelectedDate(prevDate => addDays(prevDate, 3));
+    const daysToMove = getDaysToShow();
+    setSelectedDate(prevDate => addDays(prevDate, daysToMove));
   };
 
   return (
@@ -267,10 +286,12 @@ const CalendarPage = () => {
               {isMobile && activeView === "week" && (
                 <>
                   <Button variant="outline" size="sm" onClick={handlePrevDays}>
-                    Anterior
+                    <ChevronLeftIcon size={16} className="mr-1" />
+                    {isSmallMobile ? '' : 'Anterior'}
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleNextDays}>
-                    Siguiente
+                    {isSmallMobile ? '' : 'Siguiente'}
+                    <ChevronRightIcon size={16} className="ml-1" />
                   </Button>
                 </>
               )}

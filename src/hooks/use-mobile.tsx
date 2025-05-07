@@ -19,7 +19,7 @@ export function useIsMobile() {
   return !!isMobile
 }
 
-// Add a more flexible function that accepts a custom breakpoint
+// A more flexible function that accepts a custom media query
 export function useMediaQuery(query: string) {
   const [matches, setMatches] = React.useState<boolean | undefined>(undefined)
 
@@ -34,4 +34,21 @@ export function useMediaQuery(query: string) {
   }, [query])
 
   return !!matches
+}
+
+// Create more specific hooks for common breakpoints
+export function useIsSmallMobile() {
+  return useMediaQuery("(max-width: 430px)")
+}
+
+export function useIsMediumMobile() {
+  return useMediaQuery("(min-width: 431px) and (max-width: 639px)")
+}
+
+export function useIsLargeMobile() {
+  return useMediaQuery("(min-width: 640px) and (max-width: 767px)")
+}
+
+export function useIsDesktop() {
+  return useMediaQuery("(min-width: 768px)")
 }

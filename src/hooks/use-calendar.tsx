@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { startOfWeek, endOfWeek, startOfDay, addDays, format, addWeeks, subWeeks } from "date-fns";
+import { startOfWeek, endOfWeek, startOfDay, addDays, format, addWeeks, subWeeks, subDays } from "date-fns";
 import { getAppointments, Appointment } from "@/services/appointmentService";
 import { toast } from "sonner";
 import { useIsMobile, useMediaQuery } from "@/hooks/use-mobile";

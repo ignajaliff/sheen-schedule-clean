@@ -13,6 +13,7 @@ export const useCalendar = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [visibleDayOffset, setVisibleDayOffset] = useState(0);
   
   // Use more granular breakpoints for better responsive design
   const isMobile = useIsMobile();
@@ -48,14 +49,20 @@ export const useCalendar = () => {
   const getDaysOfWeek = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
     const daysToShow = activeView === "fullWeek" ? 7 : getDaysToShow();
+    
+    // For mobile view with pagination
+    let dayStart = activeView === "fullWeek" || !isMobile
+      ? start
+      : addDays(start, visibleDayOffset);
+        
     const end = activeView === "fullWeek" || !isMobile
       ? endOfWeek(selectedDate, { weekStartsOn: 1 })
-      : addDays(start, daysToShow - 1);
+      : addDays(dayStart, daysToShow - 1);
     
     const days = [];
-    let day = start;
+    let day = dayStart;
     
-    while (day <= end) {
+    while (day <= end && days.length < daysToShow) {
       days.push(day);
       day = addDays(day, 1);
     }
@@ -75,12 +82,42 @@ export const useCalendar = () => {
   // Navigation for days view
   const goToNextDays = () => {
     const daysToShow = getDaysToShow();
-    setSelectedDate(prevDate => addDays(prevDate, daysToShow));
+    
+    if (activeView === "fullWeek" || !isMobile) {
+      // In full week view or desktop, navigate by weeks
+      setSelectedDate(prevDate => addDays(prevDate, 7));
+    } else {
+      // In mobile view, navigate by the number of days shown
+      setVisibleDayOffset(prev => {
+        const newOffset = prev + daysToShow;
+        // If we've gone past the week, reset to beginning of next week
+        if (newOffset >= 7) {
+          setSelectedDate(prevDate => addWeeks(prevDate, 1));
+          return 0;
+        }
+        return newOffset;
+      });
+    }
   };
 
   const goToPreviousDays = () => {
     const daysToShow = getDaysToShow();
-    setSelectedDate(prevDate => subDays(prevDate, daysToShow));
+    
+    if (activeView === "fullWeek" || !isMobile) {
+      // In full week view or desktop, navigate by weeks
+      setSelectedDate(prevDate => subDays(prevDate, 7));
+    } else {
+      // In mobile view, navigate by the number of days shown
+      setVisibleDayOffset(prev => {
+        const newOffset = prev - daysToShow;
+        // If we've gone before the week, reset to end of previous week
+        if (newOffset < 0) {
+          setSelectedDate(prevDate => subWeeks(prevDate, 1));
+          return 7 - daysToShow;
+        }
+        return newOffset;
+      });
+    }
   };
   
   const handleAppointmentAdded = () => {
@@ -90,6 +127,11 @@ export const useCalendar = () => {
   const openAppointmentDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
   };
+  
+  // Reset visible day offset when changing views
+  useEffect(() => {
+    setVisibleDayOffset(0);
+  }, [activeView]);
   
   return {
     selectedDate,
@@ -107,6 +149,7 @@ export const useCalendar = () => {
     isSmallMobile,
     isMediumMobile,
     isLargeMobile,
+    visibleDayOffset,
     getDaysToShow,
     getDaysOfWeek,
     handleAppointmentAdded,

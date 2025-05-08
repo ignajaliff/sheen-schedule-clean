@@ -69,13 +69,13 @@ const WeekView = ({
     <div className="flex flex-col">
       {isMobile && (
         <div className="flex justify-between items-center mb-2">
-          <Button variant="outline" size="sm" onClick={onPrevious}>
-            <ChevronLeft size={16} className="mr-1" />
-            Anterior
+          <Button variant="outline" size="sm" onClick={onPrevious} className="flex items-center gap-1">
+            <ChevronLeft size={16} />
+            <span className="hidden sm:inline">Anterior</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={onNext}>
-            Siguiente
-            <ChevronRight size={16} className="ml-1" />
+          <Button variant="outline" size="sm" onClick={onNext} className="flex items-center gap-1">
+            <span className="hidden sm:inline">Siguiente</span>
+            <ChevronRight size={16} />
           </Button>
         </div>
       )}

@@ -46,9 +46,15 @@ const CalendarPage = () => {
     });
   };
 
-  // Función para determinar si se deben mostrar todos los dias de la semana
-  const showFullWeek = () => {
-    setActiveView("fullWeek");
+  // Get the visible date range text for display
+  const getVisibleDateRangeText = () => {
+    const days = getDaysOfWeek();
+    if (days.length === 0) return "";
+    
+    const firstDay = days[0];
+    const lastDay = days[days.length - 1];
+    
+    return `${format(firstDay, 'd MMM')} - ${format(lastDay, 'd MMM')}`;
   };
 
   return (
@@ -75,6 +81,12 @@ const CalendarPage = () => {
               </Button>
             </div>
           </div>
+
+          {isMobile && activeView !== "day" && (
+            <div className="text-center text-sm font-medium text-gray-500 mb-2">
+              {getVisibleDateRangeText()}
+            </div>
+          )}
           
           <TabsContent value="day" className="mt-0">
             <DayView

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { startOfWeek, endOfWeek, startOfDay, addDays } from "date-fns";
+import { startOfWeek, endOfWeek, startOfDay, addDays, format, addWeeks, subWeeks } from "date-fns";
 import { getAppointments, Appointment } from "@/services/appointmentService";
 import { toast } from "sonner";
 import { useIsMobile, useMediaQuery } from "@/hooks/use-mobile";
@@ -37,20 +37,20 @@ export const useCalendar = () => {
     loadAppointments();
   }, [refreshKey]);
   
-  // Determine how many days to show based on screen size
+  // Determine how many days to show based on screen size with improved values
   const getDaysToShow = () => {
-    if (isSmallMobile) return 2; // Smallest screens: 2 days
-    if (isMediumMobile) return 3; // Medium mobile: 3 days
-    if (isLargeMobile) return 4; // Larger mobile devices: 4 days
+    if (isSmallMobile) return 3; // Smallest screens: show at least 3 days
+    if (isMediumMobile) return 4; // Medium mobile: 4 days
+    if (isLargeMobile) return 5; // Larger mobile devices: 5 days
     return 7; // Desktop: Full week
   };
   
   const getDaysOfWeek = () => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const daysToShow = getDaysToShow();
-    const end = isMobile 
-      ? addDays(start, daysToShow - 1) // Show only the calculated number of days on mobile
-      : endOfWeek(selectedDate, { weekStartsOn: 1 });
+    const daysToShow = activeView === "fullWeek" ? 7 : getDaysToShow();
+    const end = activeView === "fullWeek" || !isMobile
+      ? endOfWeek(selectedDate, { weekStartsOn: 1 })
+      : addDays(start, daysToShow - 1);
     
     const days = [];
     let day = start;
@@ -61,6 +61,26 @@ export const useCalendar = () => {
     }
     
     return days;
+  };
+
+  // Navigation for weekly view
+  const goToNextWeek = () => {
+    setSelectedDate(prevDate => addWeeks(prevDate, 1));
+  };
+
+  const goToPreviousWeek = () => {
+    setSelectedDate(prevDate => subWeeks(prevDate, 1));
+  };
+  
+  // Navigation for days view
+  const goToNextDays = () => {
+    const daysToShow = getDaysToShow();
+    setSelectedDate(prevDate => addDays(prevDate, daysToShow));
+  };
+
+  const goToPreviousDays = () => {
+    const daysToShow = getDaysToShow();
+    setSelectedDate(prevDate => subDays(prevDate, daysToShow));
   };
   
   const handleAppointmentAdded = () => {
@@ -90,7 +110,11 @@ export const useCalendar = () => {
     getDaysToShow,
     getDaysOfWeek,
     handleAppointmentAdded,
-    openAppointmentDetails
+    openAppointmentDetails,
+    goToNextWeek,
+    goToPreviousWeek,
+    goToNextDays,
+    goToPreviousDays
   };
 };
 

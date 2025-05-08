@@ -1,6 +1,6 @@
 
 import { format, addDays, subDays, isSameDay } from "date-fns";
-import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { PlusIcon, ChevronLeftIcon, ChevronRightIcon, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
@@ -28,7 +28,11 @@ const CalendarPage = () => {
     getDaysToShow,
     getDaysOfWeek,
     handleAppointmentAdded,
-    openAppointmentDetails
+    openAppointmentDetails,
+    goToNextWeek,
+    goToPreviousWeek,
+    goToNextDays,
+    goToPreviousDays
   } = useCalendar();
 
   // Get appointments for a specific day
@@ -42,15 +46,9 @@ const CalendarPage = () => {
     });
   };
 
-  // Navigation handlers
-  const handlePrevDays = () => {
-    const daysToMove = getDaysToShow();
-    setSelectedDate(prevDate => subDays(prevDate, daysToMove));
-  };
-
-  const handleNextDays = () => {
-    const daysToMove = getDaysToShow();
-    setSelectedDate(prevDate => addDays(prevDate, daysToMove));
+  // Función para determinar si se deben mostrar todos los dias de la semana
+  const showFullWeek = () => {
+    setActiveView("fullWeek");
   };
 
   return (
@@ -68,21 +66,10 @@ const CalendarPage = () => {
             <TabsList>
               <TabsTrigger value="day">Día</TabsTrigger>
               <TabsTrigger value="week">Semana</TabsTrigger>
+              {isMobile && <TabsTrigger value="fullWeek">7 días</TabsTrigger>}
             </TabsList>
             
             <div className="flex items-center gap-2">
-              {isMobile && activeView === "week" && (
-                <>
-                  <Button variant="outline" size="sm" onClick={handlePrevDays}>
-                    <ChevronLeftIcon size={16} className="mr-1" />
-                    {isSmallMobile ? '' : 'Anterior'}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleNextDays}>
-                    {isSmallMobile ? '' : 'Siguiente'}
-                    <ChevronRightIcon size={16} className="ml-1" />
-                  </Button>
-                </>
-              )}
               <Button variant="outline" onClick={() => setSelectedDate(new Date())}>
                 Hoy
               </Button>
@@ -104,6 +91,22 @@ const CalendarPage = () => {
               appointments={appointments}
               openAppointmentDetails={openAppointmentDetails}
               isLoading={isLoading}
+              onNext={isMobile ? goToNextDays : goToNextWeek}
+              onPrevious={isMobile ? goToPreviousDays : goToPreviousWeek}
+            />
+          </TabsContent>
+          
+          <TabsContent value="fullWeek" className="mt-0">
+            <WeekView
+              days={activeView === "fullWeek" ? Array.from({ length: 7 }, (_, i) => {
+                const startWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
+                return addDays(startWeek, i);
+              }) : getDaysOfWeek()}
+              appointments={appointments}
+              openAppointmentDetails={openAppointmentDetails}
+              isLoading={isLoading}
+              onNext={goToNextWeek}
+              onPrevious={goToPreviousWeek}
             />
           </TabsContent>
         </Tabs>

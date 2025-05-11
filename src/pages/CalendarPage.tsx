@@ -147,7 +147,9 @@ const CalendarPage = () => {
             days={daysOfWeek}
             appointments={appointments}
             isLoading={isLoading}
-            onAppointmentClick={openAppointmentDetails}
+            openAppointmentDetails={openAppointmentDetails}
+            onNext={navigateNext}
+            onPrevious={navigatePrevious}
           />
         </ScrollArea>
       </main>

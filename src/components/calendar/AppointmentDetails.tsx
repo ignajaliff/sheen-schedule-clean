@@ -3,6 +3,9 @@ import { Appointment, updateAppointmentStatus } from "@/services/appointmentServ
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
 
 interface AppointmentDetailsProps {
   appointment: Appointment | null;
@@ -15,18 +18,25 @@ const AppointmentDetails = ({
   onClose, 
   onStatusUpdated 
 }: AppointmentDetailsProps) => {
+  const [paymentMethod, setPaymentMethod] = useState<string>("Efectivo");
+  
   if (!appointment) return null;
 
   const handleStatusUpdate = async (id: string, status: "completed" | "cancelled") => {
     try {
-      const updatedAppointment = await updateAppointmentStatus(id, status);
+      // Only pass payment method if completing the appointment
+      const updatedAppointment = await updateAppointmentStatus(
+        id, 
+        status,
+        status === "completed" ? paymentMethod : undefined
+      );
       
       if (updatedAppointment) {
         onStatusUpdated();
         onClose();
         
         if (status === "completed") {
-          toast.success("Turno completado correctamente");
+          toast.success(`Turno completado correctamente (Pago: ${paymentMethod})`);
         } else {
           toast.info("Turno cancelado");
         }
@@ -92,7 +102,34 @@ const AppointmentDetails = ({
               {appointment.status === "cancelled" && "Cancelado"}
             </p>
           </div>
+          
+          {appointment.status === "completed" && appointment.paymentMethod && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Método de Pago</h3>
+              <p>{appointment.paymentMethod}</p>
+            </div>
+          )}
         </div>
+        
+        {appointment.status === "pending" && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Método de Pago</h3>
+            <RadioGroup
+              value={paymentMethod}
+              onValueChange={setPaymentMethod}
+              className="flex flex-col gap-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Efectivo" id="efectivo" />
+                <Label htmlFor="efectivo">Efectivo</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Mercado Pago" id="mercado-pago" />
+                <Label htmlFor="mercado-pago">Mercado Pago</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
         
         <DialogFooter className="gap-2 sm:gap-0">
           {appointment.status === "pending" && (

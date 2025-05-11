@@ -70,7 +70,7 @@ export const useCalendar = () => {
     return days;
   };
 
-  // Navigation for weekly view
+  // Navigation for weekly view - improved to allow navigating to future weeks
   const goToNextWeek = () => {
     setSelectedDate(prevDate => addWeeks(prevDate, 1));
   };
@@ -79,13 +79,13 @@ export const useCalendar = () => {
     setSelectedDate(prevDate => subWeeks(prevDate, 1));
   };
   
-  // Navigation for days view
+  // Navigation for days view - improved to handle moving between weeks properly
   const goToNextDays = () => {
     const daysToShow = getDaysToShow();
     
     if (activeView === "fullWeek" || !isMobile) {
       // In full week view or desktop, navigate by weeks
-      setSelectedDate(prevDate => addDays(prevDate, 7));
+      setSelectedDate(prevDate => addWeeks(prevDate, 1));
     } else {
       // In mobile view, navigate by the number of days shown
       setVisibleDayOffset(prev => {
@@ -105,7 +105,7 @@ export const useCalendar = () => {
     
     if (activeView === "fullWeek" || !isMobile) {
       // In full week view or desktop, navigate by weeks
-      setSelectedDate(prevDate => subDays(prevDate, 7));
+      setSelectedDate(prevDate => subWeeks(prevDate, 1));
     } else {
       // In mobile view, navigate by the number of days shown
       setVisibleDayOffset(prev => {
@@ -132,6 +132,12 @@ export const useCalendar = () => {
   useEffect(() => {
     setVisibleDayOffset(0);
   }, [activeView]);
+
+  // Function to jump to current date
+  const goToToday = () => {
+    setSelectedDate(new Date());
+    setVisibleDayOffset(0);
+  };
   
   return {
     selectedDate,
@@ -157,7 +163,8 @@ export const useCalendar = () => {
     goToNextWeek,
     goToPreviousWeek,
     goToNextDays,
-    goToPreviousDays
+    goToPreviousDays,
+    goToToday
   };
 };
 

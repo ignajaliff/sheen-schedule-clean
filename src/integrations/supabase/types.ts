@@ -17,6 +17,7 @@ export type Database = {
           id: string
           is_home_service: boolean
           location: string
+          payment_method: string | null
           price: number | null
           service_type: string
           status: string
@@ -29,6 +30,7 @@ export type Database = {
           id?: string
           is_home_service?: boolean
           location: string
+          payment_method?: string | null
           price?: number | null
           service_type: string
           status: string
@@ -41,6 +43,7 @@ export type Database = {
           id?: string
           is_home_service?: boolean
           location?: string
+          payment_method?: string | null
           price?: number | null
           service_type?: string
           status?: string

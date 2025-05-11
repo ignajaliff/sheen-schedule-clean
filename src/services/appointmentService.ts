@@ -11,6 +11,7 @@ export interface Appointment {
   isHomeService: boolean;
   status: "pending" | "completed" | "cancelled";
   price: number | null;
+  paymentMethod: string | null;
 }
 
 // Servicio para obtener los turnos
@@ -92,6 +93,53 @@ export const getAppointmentsByStatus = async (status: string): Promise<Appointme
     toast.error("Error inesperado: " + (error as Error).message);
     console.error("Unexpected error filtering appointments by status:", error);
     return [];
+  }
+};
+
+// Get payment method statistics
+export const getPaymentMethodStats = async () => {
+  try {
+    const { data: appointments, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('status', 'completed');
+
+    if (error) {
+      toast.error("Error al obtener estadísticas de pago: " + error.message);
+      console.error("Error fetching payment method statistics:", error);
+      return {
+        totalEfectivo: 0,
+        totalMercadoPago: 0
+      };
+    }
+
+    if (!appointments || !Array.isArray(appointments)) {
+      console.error("No data or invalid data format returned when fetching payment statistics", appointments);
+      return {
+        totalEfectivo: 0,
+        totalMercadoPago: 0
+      };
+    }
+
+    const totalEfectivo = appointments
+      .filter(app => app.payment_method === "Efectivo")
+      .reduce((sum, app) => sum + (app.price || 0), 0);
+    
+    const totalMercadoPago = appointments
+      .filter(app => app.payment_method === "Mercado Pago")
+      .reduce((sum, app) => sum + (app.price || 0), 0);
+    
+    return {
+      totalEfectivo,
+      totalMercadoPago
+    };
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error fetching payment method statistics:", error);
+    return {
+      totalEfectivo: 0,
+      totalMercadoPago: 0
+    };
   }
 };
 
@@ -286,12 +334,23 @@ export const addAppointment = async (appointmentData: NewAppointmentData): Promi
   }
 };
 
-// Actualizar el estado de un turno
-export const updateAppointmentStatus = async (id: string, status: "pending" | "completed" | "cancelled"): Promise<Appointment | undefined> => {
+// Update the appointment status and payment method
+export const updateAppointmentStatus = async (
+  id: string, 
+  status: "pending" | "completed" | "cancelled",
+  paymentMethod?: string
+): Promise<Appointment | undefined> => {
   try {
+    const updateData: { status: string, payment_method?: string } = { status };
+    
+    // Only add payment method if appointment is being marked as completed
+    if (status === "completed" && paymentMethod) {
+      updateData.payment_method = paymentMethod;
+    }
+
     const { data, error } = await supabase
       .from('appointments')
-      .update({ status })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -373,7 +432,8 @@ const mapAppointmentFromSupabase = (appointment: any): Appointment => {
       location: appointment.location,
       isHomeService: appointment.is_home_service,
       status: appointment.status as "pending" | "completed" | "cancelled",
-      price: appointment.price
+      price: appointment.price,
+      paymentMethod: appointment.payment_method
     };
   } catch (error) {
     console.error("Error mapping appointment from Supabase", error, appointment);

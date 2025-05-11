@@ -1,21 +1,26 @@
 
-import { format, addDays, subDays, isSameDay, startOfWeek } from "date-fns";
-import { PlusIcon, ChevronLeftIcon, ChevronRightIcon, Calendar as CalendarIcon } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Header from "@/components/Header";
-import AppointmentForm from "@/components/AppointmentForm";
-import { Appointment } from "@/services/appointmentService";
-import useCalendar from "@/hooks/use-calendar";
+import { format, startOfWeek } from "date-fns";
+import { es } from "date-fns/locale";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Calendar as CalendarIconFull } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import WeekView from "@/components/calendar/WeekView";
 import DayView from "@/components/calendar/DayView";
+import AppointmentForm from "@/components/AppointmentForm";
 import AppointmentDetails from "@/components/calendar/AppointmentDetails";
+import { useCalendar } from "@/hooks/use-calendar";
+import Header from "@/components/Header";
 
 const CalendarPage = () => {
-  const {
-    selectedDate,
+  const { 
+    selectedDate, 
     setSelectedDate,
-    isFormOpen,
+    isFormOpen, 
     setIsFormOpen,
     selectedAppointment,
     setSelectedAppointment,
@@ -24,126 +29,140 @@ const CalendarPage = () => {
     appointments,
     isLoading,
     isMobile,
-    isSmallMobile,
-    getDaysToShow,
     getDaysOfWeek,
     handleAppointmentAdded,
     openAppointmentDetails,
     goToNextWeek,
     goToPreviousWeek,
     goToNextDays,
-    goToPreviousDays
+    goToPreviousDays,
+    goToToday
   } = useCalendar();
-
-  // Get appointments for a specific day
-  const getAppointmentsForDay = (date: Date) => {
-    if (!appointments || !Array.isArray(appointments)) return [];
-    
-    return appointments.filter(appointment => {
-      const [day, month, year] = appointment.date.split('/');
-      const appointmentDate = new Date(Number(year), Number(month) - 1, Number(day));
-      return isSameDay(appointmentDate, date);
-    });
+  
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  
+  const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const daysOfWeek = getDaysOfWeek();
+  
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      setCalendarOpen(false);
+    }
   };
-
-  // Get the visible date range text for display
-  const getVisibleDateRangeText = () => {
-    const days = getDaysOfWeek();
-    if (days.length === 0) return "";
-    
-    const firstDay = days[0];
-    const lastDay = days[days.length - 1];
-    
-    return `${format(firstDay, 'd MMM')} - ${format(lastDay, 'd MMM')}`;
+  
+  const navigateNext = () => {
+    if (isMobile && activeView !== "fullWeek") {
+      goToNextDays();
+    } else {
+      goToNextWeek();
+    }
   };
-
+  
+  const navigatePrevious = () => {
+    if (isMobile && activeView !== "fullWeek") {
+      goToPreviousDays();
+    } else {
+      goToPreviousWeek();
+    }
+  };
+  
+  const getDateRangeDisplay = () => {
+    if (daysOfWeek.length > 0) {
+      const start = daysOfWeek[0];
+      const end = daysOfWeek[daysOfWeek.length - 1];
+      
+      if (daysOfWeek.length === 1) {
+        return format(start, "d 'de' MMMM yyyy", { locale: es });
+      }
+      
+      if (start.getMonth() === end.getMonth()) {
+        return `${format(start, "d", { locale: es })}-${format(end, "d 'de' MMMM yyyy", { locale: es })}`;
+      } else {
+        return `${format(start, "d 'de' MMMM", { locale: es })} - ${format(end, "d 'de' MMMM yyyy", { locale: es })}`;
+      }
+    }
+    return "";
+  };
+    
   return (
-    <div className="pb-20 md:pb-5 md:pl-20">
+    <div className="min-h-screen pb-20 md:pb-5 md:pl-20">
       <Header title="Calendario" />
       
-      <main className="pt-20 px-2">
-        <Tabs 
-          defaultValue="week" 
-          value={activeView} 
-          onValueChange={setActiveView}
-          className="w-full"
-        >
-          <div className="flex justify-between items-center px-2 mb-4">
-            <TabsList>
-              <TabsTrigger value="day">Día</TabsTrigger>
-              <TabsTrigger value="week">Semana</TabsTrigger>
-              {isMobile && <TabsTrigger value="fullWeek">7 días</TabsTrigger>}
-            </TabsList>
+      <main className="pt-20 px-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={navigatePrevious}>
+              <ChevronLeft className="h-4 w-4" />
+              <span className="ml-1 hidden sm:inline">Anterior</span>
+            </Button>
             
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setSelectedDate(new Date())}>
-                Hoy
-              </Button>
-            </div>
-          </div>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="min-w-[150px] justify-start">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <span className="truncate">{getDateRangeDisplay()}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateChange}
+                  locale={es}
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Button variant="outline" onClick={navigateNext}>
+              <span className="mr-1 hidden sm:inline">Siguiente</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
 
-          {isMobile && activeView !== "day" && (
-            <div className="text-center text-sm font-medium text-gray-500 mb-2">
-              {getVisibleDateRangeText()}
-            </div>
+            <Button variant="outline" onClick={goToToday}>
+              <CalendarIconFull className="mr-1 h-4 w-4" />
+              <span>Hoy</span>
+            </Button>
+          </div>
+          
+          {isMobile && (
+            <Tabs value={activeView} onValueChange={setActiveView} className="w-full md:w-auto">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="week">Semana</TabsTrigger>
+                <TabsTrigger value="fullWeek">Semana Completa</TabsTrigger>
+              </TabsList>
+            </Tabs>
           )}
           
-          <TabsContent value="day" className="mt-0">
-            <DayView
-              selectedDate={selectedDate}
-              appointmentsForDay={getAppointmentsForDay(selectedDate)}
-              openAppointmentDetails={openAppointmentDetails}
-              isLoading={isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="week" className="mt-0">
-            <WeekView
-              days={getDaysOfWeek()}
-              appointments={appointments}
-              openAppointmentDetails={openAppointmentDetails}
-              isLoading={isLoading}
-              onNext={isMobile ? goToNextDays : goToNextWeek}
-              onPrevious={isMobile ? goToPreviousDays : goToPreviousWeek}
-            />
-          </TabsContent>
-          
-          <TabsContent value="fullWeek" className="mt-0">
-            <WeekView
-              days={activeView === "fullWeek" ? Array.from({ length: 7 }, (_, i) => {
-                const startWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
-                return addDays(startWeek, i);
-              }) : getDaysOfWeek()}
-              appointments={appointments}
-              openAppointmentDetails={openAppointmentDetails}
-              isLoading={isLoading}
-              onNext={goToNextWeek}
-              onPrevious={goToPreviousWeek}
-            />
-          </TabsContent>
-        </Tabs>
+          <Button 
+            onClick={() => setIsFormOpen(true)}
+            className="w-full md:w-auto"
+          >
+            Nuevo Turno
+          </Button>
+        </div>
         
-        <Button 
-          className="fixed right-4 bottom-20 md:bottom-4 bg-cleanly-blue hover:bg-blue-700 shadow-lg rounded-full w-14 h-14 p-0"
-          onClick={() => setIsFormOpen(true)}
-        >
-          <PlusIcon size={24} />
-        </Button>
-        
-        {/* Modal para ver detalles del turno */}
-        <AppointmentDetails
-          appointment={selectedAppointment}
-          onClose={() => setSelectedAppointment(null)}
-          onStatusUpdated={handleAppointmentAdded}
-        />
-        
-        {/* Formulario para nuevo turno */}
-        <AppointmentForm 
-          open={isFormOpen} 
-          onClose={() => setIsFormOpen(false)}
-          onAppointmentAdded={handleAppointmentAdded}
-        />
+        <ScrollArea className="h-[calc(100vh-170px)]">
+          <WeekView 
+            days={daysOfWeek}
+            appointments={appointments}
+            isLoading={isLoading}
+            onAppointmentClick={openAppointmentDetails}
+          />
+        </ScrollArea>
       </main>
+      
+      <AppointmentForm 
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onAppointmentAdded={handleAppointmentAdded}
+      />
+      
+      <AppointmentDetails
+        appointment={selectedAppointment}
+        onClose={() => setSelectedAppointment(null)}
+        onStatusUpdated={handleAppointmentAdded}
+      />
     </div>
   );
 };

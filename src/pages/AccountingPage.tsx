@@ -2,15 +2,17 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getCompletedAppointments, Appointment } from "@/services/appointmentService";
+import { getCompletedAppointments, Appointment, getPaymentMethodStats } from "@/services/appointmentService";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import Header from "@/components/Header";
 
 const AccountingPage = () => {
   const [completedAppointments, setCompletedAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentStats, setPaymentStats] = useState({
+    totalEfectivo: 0,
+    totalMercadoPago: 0
+  });
   
   useEffect(() => {
     loadCompletedAppointments();
@@ -21,9 +23,13 @@ const AccountingPage = () => {
     try {
       const appointments = await getCompletedAppointments();
       setCompletedAppointments(appointments);
+      
+      // Load payment method statistics
+      const stats = await getPaymentMethodStats();
+      setPaymentStats(stats);
     } catch (error) {
-      toast.error("Error al cargar los turnos completados");
-      console.error("Error loading completed appointments:", error);
+      toast.error("Error al cargar los datos");
+      console.error("Error loading accounting data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -86,6 +92,29 @@ const AccountingPage = () => {
           </Card>
         </div>
         
+        {/* Payment Method Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Ingresos en Efectivo</CardTitle>
+              <CardDescription>Total pagado en efectivo</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{formatPrice(paymentStats.totalEfectivo)}</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Ingresos en Mercado Pago</CardTitle>
+              <CardDescription>Total pagado con Mercado Pago</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{formatPrice(paymentStats.totalMercadoPago)}</p>
+            </CardContent>
+          </Card>
+        </div>
+        
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Ingresos por Mes</CardTitle>
@@ -136,13 +165,14 @@ const AccountingPage = () => {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Servicio</TableHead>
                       <TableHead>Ubicación</TableHead>
+                      <TableHead>Método de Pago</TableHead>
                       <TableHead className="text-right">Precio</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {completedAppointments.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center h-24">
+                        <TableCell colSpan={6} className="text-center h-24">
                           No hay servicios completados
                         </TableCell>
                       </TableRow>
@@ -153,6 +183,7 @@ const AccountingPage = () => {
                           <TableCell>{appointment.clientName}</TableCell>
                           <TableCell>{appointment.serviceType}</TableCell>
                           <TableCell>{appointment.isHomeService ? "Domicilio" : "Taller"}</TableCell>
+                          <TableCell>{appointment.paymentMethod || "No especificado"}</TableCell>
                           <TableCell className="text-right font-medium">
                             {formatPrice(appointment.price || 0)}
                           </TableCell>

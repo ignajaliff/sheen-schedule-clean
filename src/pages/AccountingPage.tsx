@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getCompletedAppointments, Appointment, getPaymentMethodStats } from "@/services/appointmentService";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import { DollarSign, Receipt, CheckCheck } from "lucide-react";
+import { DollarSign, Coins, CheckCheck, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const AccountingPage = () => {
@@ -73,11 +73,12 @@ const AccountingPage = () => {
       
       <main className="pt-20 px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="border-2 border-green-700 overflow-hidden">
+          {/* Ingresos Totales - Verde más oscuro */}
+          <Card className="overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-green-700/20 to-green-600/5 z-0" />
             <CardHeader className="pb-2 relative z-10">
               <CardTitle className="flex items-center gap-2 text-green-800">
-                <Receipt className="h-5 w-5" />
+                <Coins className="h-5 w-5" />
                 Ingresos Totales
               </CardTitle>
               <CardDescription>Total de todos los servicios completados</CardDescription>
@@ -87,7 +88,8 @@ const AccountingPage = () => {
             </CardContent>
           </Card>
           
-          <Card className="border-2 border-yellow-500 overflow-hidden">
+          {/* Servicios Completados - Amarillo */}
+          <Card className="overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 to-yellow-50 z-0" />
             <CardHeader className="pb-2 relative z-10">
               <CardTitle className="flex items-center gap-2 text-yellow-700">
@@ -104,7 +106,8 @@ const AccountingPage = () => {
         
         {/* Payment Method Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="border-2 border-blue-400 overflow-hidden">
+          {/* Mercado Pago - Celeste con blanco */}
+          <Card className="overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-white z-0" />
             <CardHeader className="pb-2 relative z-10">
               <CardTitle className="flex items-center gap-2 text-blue-700">
@@ -126,7 +129,8 @@ const AccountingPage = () => {
             </CardContent>
           </Card>
           
-          <Card className="border-2 border-green-400 overflow-hidden">
+          {/* Ingresos en Efectivo - Verde claro */}
+          <Card className="overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-white z-0" />
             <CardHeader className="pb-2 relative z-10">
               <CardTitle className="flex items-center gap-2 text-green-700">

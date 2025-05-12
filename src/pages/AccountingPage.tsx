@@ -73,44 +73,44 @@ const AccountingPage = () => {
       
       <main className="pt-20 px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Ingresos Totales - Verde más oscuro */}
-          <Card className="relative shadow-lg border border-green-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-400 opacity-20 rounded-lg" />
+          {/* Ingresos Totales - Verde corporativo */}
+          <Card className="relative shadow-md border border-gray-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#304352] to-[#243949] opacity-30 rounded-lg" />
             <CardHeader className="pb-2 relative z-10">
-              <CardTitle className="flex items-center gap-2 text-green-800">
+              <CardTitle className="flex items-center gap-2 text-gray-800">
                 <Coins className="h-5 w-5" />
                 Ingresos Totales
               </CardTitle>
-              <CardDescription className="text-green-900/70">Total de todos los servicios completados</CardDescription>
+              <CardDescription className="text-gray-600">Total de todos los servicios completados</CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
-              <p className="text-3xl font-bold text-green-800">{formatPrice(totalRevenue)}</p>
+              <p className="text-3xl font-bold text-gray-800">{formatPrice(totalRevenue)}</p>
             </CardContent>
           </Card>
           
-          {/* Servicios Completados - Amarillo */}
-          <Card className="relative shadow-lg border border-yellow-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-yellow-300 opacity-20 rounded-lg" />
+          {/* Servicios Completados - Azul corporativo */}
+          <Card className="relative shadow-md border border-gray-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#517fa4] to-[#243949] opacity-30 rounded-lg" />
             <CardHeader className="pb-2 relative z-10">
-              <CardTitle className="flex items-center gap-2 text-yellow-800">
+              <CardTitle className="flex items-center gap-2 text-gray-800">
                 <CheckCheck className="h-5 w-5" />
                 Servicios Completados
               </CardTitle>
-              <CardDescription className="text-yellow-900/70">Cantidad de servicios realizados</CardDescription>
+              <CardDescription className="text-gray-600">Cantidad de servicios realizados</CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
-              <p className="text-3xl font-bold text-yellow-700">{completedAppointments.length}</p>
+              <p className="text-3xl font-bold text-gray-800">{completedAppointments.length}</p>
             </CardContent>
           </Card>
         </div>
         
         {/* Payment Method Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Mercado Pago - Celeste con blanco */}
-          <Card className="relative shadow-lg border border-blue-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-100 opacity-20 rounded-lg" />
+          {/* Mercado Pago - Azul corporativo */}
+          <Card className="relative shadow-md border border-gray-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#accbee] to-[#e7f0fd] opacity-30 rounded-lg" />
             <CardHeader className="pb-2 relative z-10">
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-gray-800">
                 <div className="flex items-center">
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M0 6.982h3.154v10.037H0V6.982z" fill="#009EE3"/>
@@ -122,40 +122,40 @@ const AccountingPage = () => {
                   Ingresos en Mercado Pago
                 </div>
               </CardTitle>
-              <CardDescription className="text-blue-900/70">Total pagado con Mercado Pago</CardDescription>
+              <CardDescription className="text-gray-600">Total pagado con Mercado Pago</CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
-              <p className="text-3xl font-bold text-blue-700">{formatPrice(paymentStats.totalMercadoPago)}</p>
+              <p className="text-3xl font-bold text-gray-800">{formatPrice(paymentStats.totalMercadoPago)}</p>
             </CardContent>
           </Card>
           
-          {/* Ingresos en Efectivo - Verde claro */}
-          <Card className="relative shadow-lg border border-green-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-100 opacity-20 rounded-lg" />
+          {/* Ingresos en Efectivo - Verde corporativo */}
+          <Card className="relative shadow-md border border-gray-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#d7d2cc] to-[#304352] opacity-30 rounded-lg" />
             <CardHeader className="pb-2 relative z-10">
-              <CardTitle className="flex items-center gap-2 text-green-700">
+              <CardTitle className="flex items-center gap-2 text-gray-800">
                 <DollarSign className="h-5 w-5" />
                 Ingresos en Efectivo
               </CardTitle>
-              <CardDescription className="text-green-900/70">Total pagado en efectivo</CardDescription>
+              <CardDescription className="text-gray-600">Total pagado en efectivo</CardDescription>
             </CardHeader>
             <CardContent className="relative z-10">
-              <p className="text-3xl font-bold text-green-700">{formatPrice(paymentStats.totalEfectivo)}</p>
+              <p className="text-3xl font-bold text-gray-800">{formatPrice(paymentStats.totalEfectivo)}</p>
             </CardContent>
           </Card>
         </div>
         
-        <Card className="mb-6 border border-gray-200 shadow-md">
-          <CardHeader>
-            <CardTitle>Ingresos por Mes</CardTitle>
+        <Card className="mb-6 border border-gray-300 shadow-md">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle className="text-gray-800">Ingresos por Mes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-gray-50">
                   <TableRow>
-                    <TableHead className="font-bold">Mes</TableHead>
-                    <TableHead className="font-bold">Ingresos</TableHead>
+                    <TableHead className="font-bold text-gray-700">Mes</TableHead>
+                    <TableHead className="font-bold text-gray-700">Ingresos</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -169,7 +169,7 @@ const AccountingPage = () => {
                     Object.entries(revenueByMonth).map(([month, revenue]) => (
                       <TableRow key={month} className="hover:bg-slate-50">
                         <TableCell>{month}</TableCell>
-                        <TableCell className="font-medium text-green-700">{formatPrice(revenue)}</TableCell>
+                        <TableCell className="font-medium text-gray-700">{formatPrice(revenue)}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -179,9 +179,9 @@ const AccountingPage = () => {
           </CardContent>
         </Card>
         
-        <Card className="border border-gray-200 shadow-md">
-          <CardHeader className="bg-slate-50">
-            <CardTitle>Registro de Servicios Completados</CardTitle>
+        <Card className="border border-gray-300 shadow-md">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle className="text-gray-800">Registro de Servicios Completados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -189,14 +189,14 @@ const AccountingPage = () => {
                 <div className="p-8 text-center">Cargando datos...</div>
               ) : (
                 <Table>
-                  <TableHeader className="bg-slate-50">
+                  <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead className="font-bold">Fecha</TableHead>
-                      <TableHead className="font-bold">Cliente</TableHead>
-                      <TableHead className="font-bold">Servicio</TableHead>
-                      <TableHead className="font-bold">Ubicación</TableHead>
-                      <TableHead className="font-bold">Método de Pago</TableHead>
-                      <TableHead className="font-bold text-right">Precio</TableHead>
+                      <TableHead className="font-bold text-gray-700">Fecha</TableHead>
+                      <TableHead className="font-bold text-gray-700">Cliente</TableHead>
+                      <TableHead className="font-bold text-gray-700">Servicio</TableHead>
+                      <TableHead className="font-bold text-gray-700">Ubicación</TableHead>
+                      <TableHead className="font-bold text-gray-700">Método de Pago</TableHead>
+                      <TableHead className="font-bold text-gray-700 text-right">Precio</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

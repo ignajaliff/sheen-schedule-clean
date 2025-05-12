@@ -6,7 +6,6 @@ import {
   BarChart3, 
   Menu, 
   X, 
-  Users,
   DollarSign,
   Tag
 } from "lucide-react";
@@ -36,11 +35,6 @@ const Navbar = () => {
       name: "Calendario",
       path: "/calendar",
       icon: <CalendarDays size={20} />
-    },
-    {
-      name: "Clientes",
-      path: "/clients",
-      icon: <Users size={20} />
     },
     {
       name: "Servicios",

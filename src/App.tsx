@@ -11,7 +11,6 @@ import Navbar from "./components/Navbar";
 import AppointmentsPage from "./pages/AppointmentsPage";
 import CalendarPage from "./pages/CalendarPage";
 import MetricsPage from "./pages/MetricsPage";
-import ClientsPage from "./pages/ClientsPage";
 import ServicesPage from "./pages/ServicesPage";
 import AccountingPage from "./pages/AccountingPage";
 import NotFound from "./pages/NotFound";
@@ -51,7 +50,6 @@ const App = () => {
             <Route path="/" element={<Navigate to="/appointments" replace />} />
             <Route path="/appointments" element={<AppointmentsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/clients" element={<ClientsPage />} />
             <Route path="/metrics" element={<MetricsPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/accounting" element={<AccountingPage />} />

@@ -51,42 +51,6 @@ export type Database = {
         }
         Relationships: []
       }
-      clients: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          last_service_date: string | null
-          loyalty_points: number
-          name: string
-          notes: string | null
-          phone: string
-          preferred_contact_method: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          last_service_date?: string | null
-          loyalty_points?: number
-          name: string
-          notes?: string | null
-          phone: string
-          preferred_contact_method: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          last_service_date?: string | null
-          loyalty_points?: number
-          name?: string
-          notes?: string | null
-          phone?: string
-          preferred_contact_method?: string
-        }
-        Relationships: []
-      }
       services: {
         Row: {
           created_at: string
@@ -145,15 +109,7 @@ export type Database = {
           type?: string
           year?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "vehicles_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

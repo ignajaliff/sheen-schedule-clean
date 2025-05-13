@@ -2,10 +2,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getServices, updateServicePrice, Service } from "@/services/serviceService";
+import { getServices, updateServicePrice, createTestService, Service } from "@/services/serviceService";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 
@@ -48,6 +47,13 @@ const ServicesPage = () => {
       loadServices();
     }
   };
+
+  const handleCreateTestService = async () => {
+    const newService = await createTestService();
+    if (newService) {
+      loadServices();
+    }
+  };
   
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
@@ -59,8 +65,13 @@ const ServicesPage = () => {
       
       <main className="pt-20 px-4">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Lista de Servicios</CardTitle>
+            {services.length === 0 && (
+              <Button onClick={handleCreateTestService} variant="outline">
+                Crear Servicio de Prueba
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">

@@ -63,3 +63,30 @@ export const updateServicePrice = async (serviceId: string, newPrice: number): P
     return null;
   }
 };
+
+// Create a test service (for development purposes)
+export const createTestService = async (): Promise<Service | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .insert({
+        name: 'COMBO 1',
+        price: 36000,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Error al crear servicio de prueba: " + error.message);
+      console.error("Error creating test service:", error);
+      return null;
+    }
+
+    toast.success("Servicio de prueba creado correctamente");
+    return data;
+  } catch (error) {
+    toast.error("Error inesperado: " + (error as Error).message);
+    console.error("Unexpected error creating test service:", error);
+    return null;
+  }
+};

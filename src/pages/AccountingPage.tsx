@@ -29,7 +29,7 @@ const AccountingPage = () => {
             description="Total de todos los servicios completados"
             value={formatPrice(totalRevenue)}
             icon={<Coins className="h-5 w-5" />}
-            gradient="from-[#304352] to-[#243949]"
+            gradient="from-blue-100 to-blue-300"
           />
           
           {/* Servicios Completados */}
@@ -38,7 +38,7 @@ const AccountingPage = () => {
             description="Cantidad de servicios realizados"
             value={completedAppointments.length.toString()}
             icon={<CheckCheck className="h-5 w-5" />}
-            gradient="from-[#517fa4] to-[#243949]"
+            gradient="from-green-100 to-green-300"
           />
         </div>
         
@@ -50,7 +50,7 @@ const AccountingPage = () => {
             description="Total pagado con Mercado Pago"
             value={formatPrice(paymentStats.totalMercadoPago)}
             icon={<MercadoPagoIcon />}
-            gradient="from-[#accbee] to-[#e7f0fd]"
+            gradient="from-sky-100 to-sky-300"
           />
           
           {/* Ingresos en Efectivo */}
@@ -59,7 +59,7 @@ const AccountingPage = () => {
             description="Total pagado en efectivo"
             value={formatPrice(paymentStats.totalEfectivo)}
             icon={<DollarSign className="h-5 w-5" />}
-            gradient="from-[#d7d2cc] to-[#304352]"
+            gradient="from-yellow-100 to-yellow-300"
           />
         </div>
         
